@@ -1,0 +1,20 @@
+[user]
+	name = Dotan Dimet
+	email = dotan@corky.net
+[color]
+	diff = auto
+	status = auto
+	branch = auto
+[core]
+	preloadindex = true
+[alias]
+	lg = log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
+	gl = log --color --reverse --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
+	changed = diff-tree -r --no-commit-id --name-only
+	last = changed HEAD
+	stu = status -uno
+	wmail = config user.email dotan.dimet@cytoreason.com
+[push]
+	default = simple
+[init]
+	defaultBranch = main
