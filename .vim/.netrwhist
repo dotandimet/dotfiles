@@ -1,0 +1,12 @@
+let g:netrw_dirhistmax  =10
+let g:netrw_dirhistcnt =3
+let g:netrw_dirhist_3='/Users/dotan/CytoCode/utils-crran/bin'
+let g:netrw_dirhist_2='/Users/dotan/CytoCode/utils-crran'
+let g:netrw_dirhist_1='/Users/dotan/MyCode/bits-and-bobs/dotfiles/nvim2/after/plugin'
+let g:netrw_dirhist_0='/Users/dotan/CytoCode/auth0-tenants-mng/exports/cytoreason-p12/actions/copy-roles-from-body'
+let g:netrw_dirhist_9='/Users/dotan/CytoCode/auth0-tenants-mng/exports/cytoreason-p12/actions'
+let g:netrw_dirhist_8='/Users/dotan/CytoCode/auth0-tenants-mng/exports/cytoreason-p12'
+let g:netrw_dirhist_7='/Users/dotan/CytoCode/auth0-tenants-mng/exports/cytoreason-p12/attack-protection'
+let g:netrw_dirhist_6='/Users/dotan/CytoCode/auth0-tenants-mng/exports/cytoreason-p12'
+let g:netrw_dirhist_5='/Users/dotan/CytoCode/auth0-tenants-mng/exports/cytoreason-p12/hooks'
+let g:netrw_dirhist_4='/Users/dotan/CytoCode/platform-api-tests/tests/api_tests'
