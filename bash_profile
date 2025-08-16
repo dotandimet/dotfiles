@@ -1,0 +1,25 @@
+# shellcheck shell=bash
+eval "$(/opt/homebrew/bin/brew shellenv)"
+
+# bash completions
+export BASH_COMPLETION_COMPAT_DIR="/opt/homebrew/etc/bash_completion.d"
+[[ -r "/opt/homebrew/etc/profile.d/bash_completion.sh" ]] && . "/opt/homebrew/etc/profile.d/bash_completion.sh"
+
+# bash completion for git on mac:
+# shellcheck source=/Library/Developer/CommandLineTools/usr/share/git-core/git-completion.bash
+. "$(xcode-select -p)/usr/share/git-core/git-completion.bash"
+
+# fzf should be in the homebrew path
+# ---------
+
+# Auto-completion
+# ---------------
+[[ $- == *i* ]] && source "/opt/homebrew/opt/fzf/shell/completion.bash" 2> /dev/null
+
+# Key bindings
+# ------------
+source "/opt/homebrew/opt/fzf/shell/key-bindings.bash"
+
+# DONE? Go!
+[[ -r "${HOME}/.bashrc" ]] && . "${HOME}/.bashrc"
+
