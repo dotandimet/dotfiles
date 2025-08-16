@@ -1,7 +1,20 @@
 #!/usr/bin/env bash
 
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-CONF_DIR=${1:-"${SCRIPT_DIR}"}
+export SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+export CONF_DIR=${1:-"${SCRIPT_DIR}"}
+
+# Install software:
+echo "Installing software"
+
+if uname -a | grep -q Darwin
+then
+    echo "Installing macos stuff"
+    "${SCRIPT_DIR}/bin/macos/brew.sh"
+    "${SCRIPT_DIR}/bin/macos/bash.sh"
+fi
+
+
+
 echo "Installing dotfiles from ${CONF_DIR}"
 
 cd "${CONF_DIR}" || exit
