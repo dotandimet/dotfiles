@@ -11,7 +11,6 @@ then
     echo "Installing macos stuff"
     "${SCRIPT_DIR}/bin/macos/brew.sh"
     "${SCRIPT_DIR}/bin/macos/bash.sh"
-    "${SCRIPT_DIR}/bin/macos/ghostty.sh"
 fi
 
 

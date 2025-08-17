@@ -20,6 +20,8 @@ export BASH_COMPLETION_COMPAT_DIR="/opt/homebrew/etc/bash_completion.d"
 # ------------
 source "/opt/homebrew/opt/fzf/shell/key-bindings.bash"
 
+export PATH="${HOME}/.local/bin:${PATH}"
+
 # DONE? Go!
 [[ -r "${HOME}/.bashrc" ]] && . "${HOME}/.bashrc"
 
