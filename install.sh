@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 export SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-export CONF_DIR=${1:-"${SCRIPT_DIR}"}
+export CONF_DIR=${1:-"${SCRIPT_DIR}/config"}
 
 # Install software:
 echo "Installing software"

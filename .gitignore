@@ -1,3 +1,3 @@
-lazyvim/lazy-lock.json
-nvim_2025/lazy-lock.json
-lazyvim.json
+config/lazyvim/lazy-lock.json
+config/nvim_2025/lazy-lock.json
+config/lazyvim/lazyvim.json
