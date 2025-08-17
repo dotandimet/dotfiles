@@ -12,6 +12,13 @@ if uname -a | grep -q Darwin; then
   "${SCRIPT_DIR}/bin/macos/bash.sh" # make homebrew bash login shell
 fi
 
+if [[ -x ~/.local/bin/mise ]]
+then
+	echo "mise package manager installed"
+else
+	curl https://mise.run | sh
+fi
+
 echo "Installing dotfiles from ${CONF_DIR}"
 
 cd "${CONF_DIR}" || exit
