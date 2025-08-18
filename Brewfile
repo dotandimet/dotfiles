@@ -1,6 +1,3 @@
-tap "homebrew/bundle"
-tap "homebrew/cask"
-tap "homebrew/core"
 brew "awk"
 brew "bash"
 brew "bash-completion@2"
