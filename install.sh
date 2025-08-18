@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 
+set -euo pipefail
+
 export SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-export CONF_DIR=${1:-"${SCRIPT_DIR}/config"}
+export CONF_DIR=${1:-"${SCRIPT_DIR}/config"}  # configs are in ./config, can be overwritten by first argument to script
 
 # Install software:
 echo "Installing software"
@@ -25,11 +27,7 @@ cd "${CONF_DIR}" || exit
 for CONF in *; do
   SRC="${CONF_DIR}/${CONF}"
   TARGET=""
-  if [[ "${CONF}" == $(basename "${BASH_SOURCE[0]}") ]]; then
-    echo "$CONF is this script, skipping..."
-  elif [[ "${CONF}" == "Brewfile" ]]; then
-    echo "Skipping Brewfile..."
-  elif [[ -d "${CONF}" ]]; then
+  if [[ -d "${CONF}" ]]; then
     echo "${CONF} is a directory"
     TARGET="${HOME}/.config/${CONF}"
   else
@@ -50,3 +48,8 @@ for CONF in *; do
     ln -s "${SRC}" "${TARGET}" && echo "Installed link in ${TARGET}"
   fi
 done
+
+echo "Installing mise software...?"
+eval "$(~/.local/bin/mise activate bash)"
+mise install
+echo "DONE"
