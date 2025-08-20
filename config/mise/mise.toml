@@ -1,8 +1,3 @@
 [tools]
 node = { version = "latest" }
 perl = { version = "latest" }
-fzf = { version = "latest", os = ["linux"] }
-ripgrep = { version = "latest", os = ["linux"] }
-fd = { version = "latest", os = ["linux"] }
-tmux = { version = "latest", os = ["linux"] }
-
