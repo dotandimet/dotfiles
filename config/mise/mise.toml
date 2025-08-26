@@ -1,3 +1,5 @@
 [tools]
+usage = "latest"
+startship = "latest"
 node = { version = "latest" }
 perl = { version = "latest" }

@@ -49,7 +49,6 @@ for CONF in *; do
   fi
 done
 
-echo "Installing mise software...?"
-eval "$(~/.local/bin/mise activate bash)"
-mise install
+echo "Installing mise software..."
+~/.local/bin/mise install
 echo "DONE"
