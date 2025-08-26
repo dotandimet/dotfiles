@@ -1,4 +1,6 @@
 [tools]
+shellcheck = "latest"
+hadolint = "latest"
 usage = "latest"
 starship = "latest"
 node = { version = "latest" }
