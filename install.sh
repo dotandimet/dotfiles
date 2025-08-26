@@ -50,5 +50,5 @@ for CONF in *; do
 done
 
 echo "Installing mise software..."
-~/.local/bin/mise install
+~/.local/bin/mise install -v
 echo "DONE"
