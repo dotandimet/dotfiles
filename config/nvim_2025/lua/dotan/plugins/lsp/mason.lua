@@ -46,7 +46,6 @@ return {
                 "pylint",
                 "eslint_d",
                 "vale",
-                "hadolint",
                 "shellcheck",
                 "shfmt",
             },
