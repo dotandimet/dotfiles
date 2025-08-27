@@ -10,9 +10,7 @@ echo "Installing software"
 
 if uname -a | grep -q Darwin; then
   echo "Installing macos stuff"
-  "${SCRIPT_DIR}/bin/macos/brew.sh" # brew and software installed with brew
-  "${SCRIPT_DIR}/bin/macos/bash.sh" # make homebrew bash login shell
-fi
+  $SCRIPT_DIR/bin/macos.sh
 
 if [[ -x ~/.local/bin/mise ]]
 then
