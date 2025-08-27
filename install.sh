@@ -26,11 +26,16 @@ cd "${CONF_DIR}" || exit
 for CONF in *; do
   SRC="${CONF_DIR}/${CONF}"
   TARGET=""
-  if [[ -d "${CONF}" ]]; then
-    echo "${CONF} is a directory"
-    TARGET="${HOME}/.config/${CONF}"
-  else
+  if [[ "${CONF}" == "bashrc" || \
+        "${CONF}" == "bash_profile" || \
+        "${CONF}" == "inputrc" || \
+        "${CONF}" == "vimrc" || \
+        "${CONF}" == "gitconfig" || \
+        "${CONF}" == "tmux.conf" \
+        ]] ; then
     TARGET="${HOME}/.${CONF}"
+  else
+    TARGET="${HOME}/.config/${CONF}"
   fi
   if [[ -L "${TARGET}" ]]; then
     if [[ "$(readlink "${TARGET}")" != "${SRC}" ]]; then
