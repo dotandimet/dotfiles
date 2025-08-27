@@ -11,6 +11,7 @@ echo "Installing software"
 if uname -a | grep -q Darwin; then
   echo "Installing macos stuff"
   $SCRIPT_DIR/bin/macos.sh
+fi
 
 if [[ -x ~/.local/bin/mise ]]
 then
