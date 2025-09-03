@@ -2,15 +2,15 @@
 
 set -euo pipefail
 
-export SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-export CONF_DIR=${1:-"${SCRIPT_DIR}/config"}  # configs are in ./config, can be overwritten by first argument to script
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONF_DIR=${1:-"${SCRIPT_DIR}/config"}  # configs are in ./config, can be overwritten by first argument to script
 
 # Install software:
 echo "Installing software"
 
 if uname -a | grep -q Darwin; then
   echo "Installing macos stuff"
-  $SCRIPT_DIR/bin/macos.sh
+  "${SCRIPT_DIR}/bin/macos.sh"
 fi
 
 if [[ -x ~/.local/bin/mise ]]
