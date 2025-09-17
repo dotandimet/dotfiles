@@ -14,7 +14,6 @@ PROMPT_COMMAND='history -a'
 # Don't put duplicate lines in the history.
 export HISTCONTROL=ignoredups
 
-
 function parse_git_dirty {
   [[ $(git status --porcelain 2>/dev/null) ]] && echo "*"
 }
@@ -31,5 +30,6 @@ alias ls="ls --color=auto"
 
 alias lv="env NVIM_APPNAME=lazyvim nvim"
 alias nv25="env NVIM_APPNAME=nvim_2025 nvim"
+alias p="cd ~/Documents/code/"
 
 eval "$(starship init bash)"
