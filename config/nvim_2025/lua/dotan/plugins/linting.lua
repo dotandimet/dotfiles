@@ -12,7 +12,6 @@ return {
             svelte = { "eslint_d" },
             python = { "pylint" },
             markdown = { "vale" },
-            dockerfile = { "hadolint" },
             sh = { "shellcheck" },
             perl = { "perlcritic" }
         }
