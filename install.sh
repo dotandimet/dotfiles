@@ -3,7 +3,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONF_DIR=${1:-"${SCRIPT_DIR}/config"}  # configs are in ./config, can be overwritten by first argument to script
+CONF_DIR=${1:-"${SCRIPT_DIR}/config"} # configs are in ./config, can be overwritten by first argument to script
 
 # Install software:
 echo "Installing software"
@@ -13,11 +13,10 @@ if uname -a | grep -q Darwin; then
   "${SCRIPT_DIR}/bin/macos.sh"
 fi
 
-if [[ -x ~/.local/bin/mise ]]
-then
-	echo "mise package manager installed"
+if [[ -x ~/.local/bin/mise ]]; then
+  echo "mise package manager installed"
 else
-	curl https://mise.run | sh
+  curl https://mise.run | sh
 fi
 
 echo "Installing dotfiles from ${CONF_DIR}"
@@ -26,13 +25,12 @@ cd "${CONF_DIR}" || exit
 for CONF in *; do
   SRC="${CONF_DIR}/${CONF}"
   TARGET=""
-  if [[ "${CONF}" == "bashrc" || \
-        "${CONF}" == "bash_profile" || \
-        "${CONF}" == "inputrc" || \
-        "${CONF}" == "vimrc" || \
-        "${CONF}" == "gitconfig" || \
-        "${CONF}" == "tmux.conf" \
-        ]] ; then
+  if [[ "${CONF}" == "bashrc" ||
+    "${CONF}" == "bash_profile" ||
+    "${CONF}" == "inputrc" ||
+    "${CONF}" == "vimrc" ||
+    "${CONF}" == "tmux.conf" ]] \
+    ; then
     TARGET="${HOME}/.${CONF}"
   else
     TARGET="${HOME}/.config/${CONF}"
