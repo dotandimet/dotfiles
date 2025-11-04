@@ -1,8 +1,8 @@
 [tools]
-shellcheck = "latest"
 # hadolint = "latest"
-usage = "latest"
-starship = "latest"
+gemini-cli = "latest"
 node = { version = "latest" }
 perl = { version = "latest" }
-gemini-cli = "latest"
+shellcheck = "latest"
+starship = "latest"
+usage = "latest"
