@@ -16,6 +16,26 @@ PROMPT_COMMAND='history -a'
 # Don't put duplicate lines in the history.
 export HISTCONTROL=ignoredups
 
+# Completiuons and integrations (moved from profile)
+
+[[ -r "/opt/homebrew/bin/brew" ]] && eval "$(/opt/homebrew/bin/brew shellenv)"
+
+# bash completions
+export BASH_COMPLETION_COMPAT_DIR="/opt/homebrew/etc/bash_completion.d"
+[[ -r "/opt/homebrew/etc/profile.d/bash_completion.sh" ]] && . "/opt/homebrew/etc/profile.d/bash_completion.sh"
+
+# bash completion for git on mac:
+# shellcheck source=/Library/Developer/CommandLineTools/usr/share/git-core/git-completion.bash
+[[ which xcode-select ]] && . "$(xcode-select -p)/usr/share/git-core/git-completion.bash"
+
+# Set up fzf key bindings and fuzzy completion
+eval "$(fzf --bash)"
+
+export PATH="${HOME}/.local/bin:${PATH}"
+eval "$(~/.local/bin/mise activate bash --shims)"
+eval "$(~/.local/bin/mise completion bash)"
+
+
 function parse_git_dirty {
   [[ $(git status --porcelain 2>/dev/null) ]] && echo "*"
 }
@@ -34,7 +54,7 @@ alias lv="env NVIM_APPNAME=lazyvim nvim"
 alias nv25="env NVIM_APPNAME=nvim_2025 nvim"
 function go_to_project() {
   PROJECTS="$HOME/Documents/code"
-  dir=$(find "$PROJECTS" -type d -depth 1 -exec basename {} \; | fzf --multi --tmux=center) &&
+  dir=$(fd . "$PROJECTS" --type d --max-depth 1 -exec basename {} \; | fzf --multi --tmux=center) &&
     cd "$PROJECTS/${dir}" || return
 }
 alias p="go_to_project"
