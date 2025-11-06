@@ -1,4 +1,6 @@
 # shellcheck shell=bash
+# set -euo pipefail
+# IFS=$'\n\t'
 
 export LC_ALL=en_US.UTF-8
 export EDITOR=nvim
@@ -30,6 +32,10 @@ alias ls="ls --color=auto"
 
 alias lv="env NVIM_APPNAME=lazyvim nvim"
 alias nv25="env NVIM_APPNAME=nvim_2025 nvim"
-alias p="cd ~/Documents/code/"
+function go_to_project() {
+  dir=$(find ~/Documents/code -type d -depth 1 -exec basename {} \; | fzf --multi --tmux=center) &&
+    cd "$HOME/Documents/code/${dir}"
+}
+alias p="go_to_project"
 
 eval "$(starship init bash)"
