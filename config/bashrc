@@ -33,8 +33,9 @@ alias ls="ls --color=auto"
 alias lv="env NVIM_APPNAME=lazyvim nvim"
 alias nv25="env NVIM_APPNAME=nvim_2025 nvim"
 function go_to_project() {
-  dir=$(find ~/Documents/code -type d -depth 1 -exec basename {} \; | fzf --multi --tmux=center) &&
-    cd "$HOME/Documents/code/${dir}"
+  PROJECTS="$HOME/Documents/code"
+  dir=$(find "$PROJECTS" -type d -depth 1 -exec basename {} \; | fzf --multi --tmux=center) &&
+    cd "$PROJECTS/${dir}" || return
 }
 alias p="go_to_project"
 
