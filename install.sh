@@ -4,6 +4,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONF_DIR=${1:-"${SCRIPT_DIR}/config"} # configs are in ./config, can be overwritten by first argument to script
+TARGET_DIR=${XDG_CONFIG_HOME:-"${HOME}/.config"}
+[[ -d "${TARGET_DIR}" ]] || mkdir -p "${TARGET_DIR}"
 
 # Install software:
 echo "Installing software"
@@ -33,7 +35,7 @@ for CONF in *; do
     ; then
     TARGET="${HOME}/.${CONF}"
   else
-    TARGET="${HOME}/.config/${CONF}"
+    TARGET="${TARGET_DIR}/${CONF}"
   fi
   if [[ -L "${TARGET}" ]]; then
     if [[ "$(readlink "${TARGET}")" != "${SRC}" ]]; then
@@ -46,11 +48,12 @@ for CONF in *; do
   fi
   # so now, $TARGET shouldn't exist unless it's Cool:
   if [[ -n "${TARGET}" && ! -e "${TARGET}" ]]; then
-    echo "Installing ${CONF}"
+    echo "Installing ${CONF} configuration"
     ln -s "${SRC}" "${TARGET}" && echo "Installed link in ${TARGET}"
   fi
 done
 
 echo "Installing mise software..."
-~/.local/bin/mise install -v
+eval "$(~/.local/bin/mise activate bash --shims)" # so any shims added are available in the installlation
+~/.local/bin/mise install
 echo "DONE"
