@@ -7,7 +7,16 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Install essential dependencies for the dotfiles
 # This includes git, curl, build-essential for compiling, and sudo.
 # 'file' is often useful for debugging.
-RUN apt-get update && apt-get install -y     build-essential     curl     file     git     sudo     bash     && rm -rf /var/lib/apt/lists/*
+# yacc is for installing tmux with mise, which builds it from sourte.
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    curl \
+    file \
+    git \
+    sudo \
+    bash  \
+    bison \
+    && rm -rf /var/lib/apt/lists/*
 
 # Create a non-root user 'developer' with sudo privileges
 # and set a simple password ('password').
