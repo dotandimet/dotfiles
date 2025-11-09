@@ -3,9 +3,11 @@
 gemini-cli = "latest"
 fd = "latest"
 fzf = "latest"
+neovim = "latest"
 node = { version = "latest" }
 perl = { version = "latest" }
 ripgrep = "latest"
 shellcheck = "latest"
 starship = "latest"
+tmux = "latest"
 usage = "latest"
