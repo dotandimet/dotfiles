@@ -7,7 +7,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Install essential dependencies for the dotfiles
 # This includes git, curl, build-essential for compiling, and sudo.
 # 'file' is often useful for debugging.
-# yacc is for installing tmux with mise, which builds it from sourte.
+# bison and curses are or installing tmux with mise, which builds it from source.
 RUN apt-get update && apt-get install -y \
     build-essential \
     curl \
@@ -15,8 +15,13 @@ RUN apt-get update && apt-get install -y \
     git \
     sudo \
     bash  \
-    bison \
+    bison libncurses-dev \
+    locales \
     && rm -rf /var/lib/apt/lists/*
+
+# Generate locate to avoid errors in some scripts
+RUN locale-gen en_US.UTF-8 \
+    && update-locale LANG=en_US.UTF-8
 
 # Create a non-root user 'developer' with sudo privileges
 # and set a simple password ('password').
