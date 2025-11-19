@@ -25,14 +25,15 @@ function install_macos_stuff() {
 
 # Install symlinks for config files
 function symlink_config_files {
-  cd "${CONF_DIR}" || exit
-  for CONF in *; do
+  for CONF in ${CONF_DIR}/*; do
+    CONF=$(basename "${CONF}")
     SRC="${CONF_DIR}/${CONF}"
     TARGET=""
     if [[ "${CONF}" == "bashrc" ||
       "${CONF}" == "bash_profile" ||
       "${CONF}" == "inputrc" ||
       "${CONF}" == "vimrc" ||
+      "${CONF}" == "gemini" ||
       "${CONF}" == "tmux.conf" ]] \
       ; then
       TARGET="${HOME}/.${CONF}"
@@ -53,13 +54,40 @@ function symlink_config_files {
       echo "Installing ${CONF} configuration"
       ln -s "${SRC}" "${TARGET}" && echo "Installed link in ${TARGET}"
     fi
-    cd "${SCRIPT_DIR}" || exit
+  done
+}
+
+function symlink_scripts {
+  SCRIPTS_DIR="${SCRIPT_DIR}/bin"
+  TARGET_SCRIPTS_DIR="${HOME}/.local/bin"
+  [[ -d "${TARGET_SCRIPTS_DIR}" ]] || mkdir -p "${TARGET_SCRIPTS_DIR}"
+  for SCRIPT in ${SCRIPTS_DIR}/*; do
+    SCRIPT=$(basename "${SCRIPT}")
+    SRC="${SCRIPTS_DIR}/${SCRIPT}"
+    TARGET="${TARGET_SCRIPTS_DIR}/${SCRIPT}"
+    if [[ -L "${TARGET}" ]]; then
+      if [[ "$(readlink "${TARGET}")" != "${SRC}" ]]; then
+        echo "${TARGET} is a symlink but not to ${SRC}, moving to ${TARGET}_bak"
+        mv "${TARGET}" "${TARGET}_bak"
+      fi
+    elif [[ -r "${TARGET}" ]]; then
+      echo "${TARGET} exists but not a link, moving to ${TARGET}_bak"
+      mv "${TARGET}" "${TARGET}_bak"
+    fi
+    # so now, $TARGET shouldn't exist unless it's Cool:
+    if [[ -n "${TARGET}" && ! -e "${TARGET}" ]]; then
+      echo "Installing script ${SCRIPT}"
+      ln -s "${SRC}" "${TARGET}" && echo "Installed link in ${TARGET}"
+    fi
   done
 }
 
 # Install config files
 echo "Installing dotfiles from ${CONF_DIR}"
 symlink_config_files
+
+# Install scripts
+symlink_scripts
 
 # Install software:
 echo "Installing software"

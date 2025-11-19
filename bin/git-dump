@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# Check if a filename is provided
+if [ -z "$1" ]; then
+  echo "Usage: git dump <filename>"
+  exit 1
+fi
+
+filename=$1
+
+# Get the commit history for the file and let the user select a commit with fzf
+commit_info=$(git log --pretty="format:%h %s %an" -- "$filename" | fzf)
+
+# If the user didn't select anything (e.g., pressed Esc), exit
+if [ -z "$commit_info" ]; then
+  exit 0
+fi
+
+# Extract the commit SHA from the selected line
+commit_sha=$(echo "$commit_info" | awk '{print $1}')
+
+# Get the content of the file at the selected commit and save it to a new file
+git show "$commit_sha:$filename" >"$filename.$commit_sha"
+
+echo "Dumped version of $filename from commit $commit_sha to $filename.$commit_sha"
