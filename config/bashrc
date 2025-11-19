@@ -2,7 +2,8 @@
 # set -euo pipefail
 # IFS=$'\n\t'
 
-export LC_ALL=en_US.UTF-8
+export LC_ALL="en_US.UTF-8"
+export LANG="en_US.UTF-8"
 export EDITOR=nvim
 # History
 export HISTSIZE=
@@ -31,14 +32,13 @@ export BASH_COMPLETION_COMPAT_DIR="/opt/homebrew/etc/bash_completion.d"
 
 # bash completion for git on mac:
 # shellcheck source=/Library/Developer/CommandLineTools/usr/share/git-core/git-completion.bash
-which xcode-select >& /dev/null && . "$(xcode-select -p)/usr/share/git-core/git-completion.bash"
+which xcode-select >&/dev/null && . "$(xcode-select -p)/usr/share/git-core/git-completion.bash"
 
 # Set up fzf key bindings and fuzzy completion
 eval "$(fzf --bash)"
 
 # mise completion
 eval "$(~/.local/bin/mise completion bash)"
-
 
 function parse_git_dirty {
   [[ $(git status --porcelain 2>/dev/null) ]] && echo "*"
