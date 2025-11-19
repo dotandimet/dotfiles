@@ -53,6 +53,7 @@ function symlink_config_files {
       echo "Installing ${CONF} configuration"
       ln -s "${SRC}" "${TARGET}" && echo "Installed link in ${TARGET}"
     fi
+    cd "${SCRIPT_DIR}" || exit
   done
 }
 
