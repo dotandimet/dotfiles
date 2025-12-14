@@ -1,8 +1,9 @@
 [tools]
 # hadolint = "latest"
-gemini-cli = "latest"
 fd = "latest"
 fzf = "latest"
+gemini-cli = "latest"
+gh = "latest"
 neovim = "latest"
 node = { version = "latest" }
 perl = { version = "latest" }
@@ -12,4 +13,3 @@ shellcheck = "latest"
 starship = "latest"
 tmux = "latest"
 usage = "latest"
-gh = "latest"
