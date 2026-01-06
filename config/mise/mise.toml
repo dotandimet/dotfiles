@@ -1,5 +1,6 @@
 [tools]
 # hadolint = "latest"
+claude = "latest"
 fd = "latest"
 fzf = "latest"
 gemini-cli = "latest"
