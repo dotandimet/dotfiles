@@ -64,3 +64,4 @@ function go_to_project() {
 alias p="go_to_project"
 
 eval "$(starship init bash)"
+alias s="starship toggle line_break"
