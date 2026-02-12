@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+# set -x  # Uncomment for debugging
+
+# Detect macOS keyboard layout and warn when not set to English
+# Supports two output modes: default, --tmux
+
+# Get current keyboard layout ID
+LAYOUT_ID=$(defaults read ~/Library/Preferences/com.apple.HIToolbox.plist AppleCurrentKeyboardLayoutInputSourceID 4>/dev/null)
+
+# Extract layout name from ID (e.g., com.apple.keylayout.ABC -> ABC)
+LAYOUT_NAME="${LAYOUT_ID/*./}"
+
+# English layout whitelist
+ENGLISH_LAYOUTS=(
+  "ABC"
+  "US"
+  "British"
+  "Australian"
+  "Canadian"
+  "Irish"
+  "USExtended"
+)
+
+# Check if current layout is English
+is_english=""
+for layout in "${ENGLISH_LAYOUTS[@]}"; do
+  if [[ "$LAYOUT_NAME" == "$layout" ]]; then
+    is_english="1"
+    break
+  fi
+done
+
+if [[ "${LAYOUT_NAME,,}" =~ "hebrew" ]]; then
+  LAYOUT_NAME="!תירבע"
+fi
+# Determine output mode
+mode="default"
+if [[ "${1:-''}" == "--tmux" ]]; then
+  mode="tmux"
+fi
+
+# Output based on mode and layout status
+if [[ -n "$is_english" ]]; then
+  # English layout - silent output, exit 0
+  exit 0
+else
+  # Non-English layout - show warning
+  case "$mode" in
+  tmux)
+    # Tmux format with Tokyo Night Moon warning color
+    echo "#[fg=#ffc777]⌨ ${LAYOUT_NAME}#[default]"
+    exit 1
+    ;;
+  default)
+    # Default format
+    echo "⌨ ${LAYOUT_NAME}"
+    exit 1
+    ;;
+  esac
+fi

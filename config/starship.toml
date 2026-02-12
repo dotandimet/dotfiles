@@ -2,3 +2,10 @@ add_newline = false
 
 [line_break]
 disabled = true
+
+# Keyboard layout warning indicator
+[custom.keyboard]
+command = "! ~/.local/bin/check-keyboard-layout"
+when = "! ~/.local/bin/check-keyboard-layout"
+style = "bold yellow"
+description = "Warns when keyboard layout is not English"
