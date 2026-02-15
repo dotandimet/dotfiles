@@ -65,3 +65,7 @@ alias p="go_to_project"
 
 eval "$(starship init bash)"
 alias s="starship toggle line_break"
+
+# peon-ping quick controls
+alias peon="bash ~/.claude/hooks/peon-ping/peon.sh"
+[ -f ~/.claude/hooks/peon-ping/completions.bash ] && source ~/.claude/hooks/peon-ping/completions.bash
