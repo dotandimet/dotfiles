@@ -56,6 +56,7 @@ alias ls="ls --color=auto"
 
 alias lv="env NVIM_APPNAME=lazyvim nvim"
 alias nv25="env NVIM_APPNAME=nvim_2025 nvim"
+alias asnv="env NVIM_APPNAME=astrovim nvim"
 function go_to_project() {
   PROJECTS="$HOME/Documents/code"
   dir=$(fd . "$PROJECTS" --type d --max-depth 1 --exec basename {} \; | fzf --multi --tmux=center) &&
