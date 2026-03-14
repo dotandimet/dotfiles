@@ -7,4 +7,5 @@ background-opacity = 0.9
 # make more compact, like wezterm
 adjust-cell-width = -10%
 macos-option-as-alt = true
-keybind = shift+enter=text:p\n
+keybind = shift+enter=toggle_background_opacity
+
