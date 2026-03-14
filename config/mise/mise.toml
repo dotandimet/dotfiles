@@ -5,12 +5,10 @@ fd = "latest"
 fzf = "latest"
 gemini-cli = "latest"
 gh = "latest"
-neovim = "latest"
 node = { version = "latest" }
 perl = { version = "latest" }
 python = { version = "latest" }
 ripgrep = "latest"
 shellcheck = "latest"
 starship = "latest"
-tmux = "latest"
 usage = "latest"
