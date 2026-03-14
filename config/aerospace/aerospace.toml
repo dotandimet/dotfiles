@@ -110,6 +110,10 @@ on-mode-changed = []
     alt-slash = 'layout tiles horizontal vertical'
     alt-comma = 'layout accordion horizontal vertical'
 
+    # See: https://nikitabobko.github.io/AeroSpace/commands#fullscreen
+    # toggle fullscreen for the focused window
+    alt-period = 'fullscreen'
+
     # See: https://nikitabobko.github.io/AeroSpace/commands#focus
     alt-h = 'focus left'
     alt-j = 'focus down'
