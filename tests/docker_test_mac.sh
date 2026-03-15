@@ -5,5 +5,8 @@ IFS=$'\n\t'
 
 BASE_DIR="$(cd "$(dirname "$(dirname "${BASH_SOURCE[0]}")")" && pwd)"
 echo "$BASE_DIR"
+
+# check container system is up and running
+container system status >&/dev/null || container system start
 container build --tag dotfiles-test --file "${BASE_DIR}/Dockerfile" "$BASE_DIR" &&
   container run --name my-dotfiles --interactive --tty --rm dotfiles-test
