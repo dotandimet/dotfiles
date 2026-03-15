@@ -5,6 +5,7 @@ fd = "latest"
 fzf = "latest"
 gemini-cli = "latest"
 gh = "latest"
+jq = { version = "latest", os = ["linux"] }
 neovim = { version = "latest", os = ["linux"] }
 node = { version = "latest" }
 perl = { version = "latest" }
