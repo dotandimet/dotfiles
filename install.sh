@@ -23,23 +23,6 @@ function install_macos_stuff() {
   [[ "$SHELL" == "$BREW_BASH" ]] || chsh -s "${BREW_BASH}"
 }
 
-function install_ubuntu_stuff() {
-  declare -a packages=()
-  while read -r pkg; do
-    if [[ "${pkg}" =~ "^ppa:" ]]; then
-      echo "Adding PPA ${pkg}"
-      sudo add-apt-repository "${pkg}"
-    else
-      packages+=("${pkg}")
-    fi
-  done <"ubuntu_packages.txt"
-
-  sudo apt update && apt upgrade -y
-  sudo apt install -y "${packages[@]}"
-  # add-apt-repository ppa:mkasberg/ghostty-ubuntu
-  # apt update && apt install -y neovim tmux ghostty
-}
-
 # Install symlinks for config files
 function symlink_config_files {
   for CONF in ${CONF_DIR}/*; do
@@ -112,15 +95,6 @@ echo "Installing software"
 if uname -a | grep -q Darwin; then
   echo "Installing macos stuff"
   install_macos_stuff
-elif [[ -f /etc/os-release ]]; then
-  . /etc/os-release
-  if [[ "$ID" == "ubuntu" ]]; then
-    echo "Installing ubuntu stuff"
-    install_ubuntu_stuff
-  else
-    echo "Unsupported linux distribution: $ID"
-    exit 1
-  fi
 fi
 
 if [[ -x ~/.local/bin/mise ]]; then
