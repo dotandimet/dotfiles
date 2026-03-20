@@ -23,9 +23,7 @@ return {
       styles = {
         transparency = true,
       },
-      highlight_groups = {
-        Visual = { bg = "#6e6a86", bold = true, fg = "rose" },
-      },
+      -- visual selection is fixed in an autocmd
     },
   },
   {
