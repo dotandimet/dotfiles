@@ -1,6 +1,8 @@
 # Create a config file
 # See here: https://www.youtube.com/watch?v=jWuQxU4bDeU
 theme = TokyoNight Moon
+# override theme optionally
+config-file = ?auto/theme.ghostty
 font-family = "Comic Shanns Mono"
 font-size = 16.0
 background-opacity = 0.9
