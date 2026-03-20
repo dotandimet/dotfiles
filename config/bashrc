@@ -36,6 +36,7 @@ which xcode-select >&/dev/null && . "$(xcode-select -p)/usr/share/git-core/git-c
 
 # Set up fzf key bindings and fuzzy completion
 eval "$(fzf --bash)"
+. "${HOME}/.local/bin/fzf-git.sh" # git fzf integration
 
 # mise completion
 eval "$(~/.local/bin/mise completion bash)"
