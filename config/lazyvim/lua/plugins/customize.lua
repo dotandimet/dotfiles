@@ -36,8 +36,13 @@ return {
       },
     },
   },
-  -- add dracula
   { "Mofiqul/dracula.nvim", name = "dracula" },
+  {
+    "shaunsingh/nord.nvim",
+    config = function()
+      vim.g.nord_disable_background = true
+    end,
+  },
   {
     "LazyVim/LazyVim",
     opts = {
