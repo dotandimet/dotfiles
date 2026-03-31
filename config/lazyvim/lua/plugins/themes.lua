@@ -36,6 +36,12 @@ return {
       },
     },
   },
+  {
+    "xiantang/darcula-dark.nvim",
+    dependencies = {
+      "nvim-treesitter/nvim-treesitter",
+    },
+  },
   { "Mofiqul/dracula.nvim", name = "dracula" },
   {
     "shaunsingh/nord.nvim",
