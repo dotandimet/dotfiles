@@ -20,7 +20,7 @@ export HISTCONTROL=ignoredups
 # PATH stuff
 
 export PATH="${HOME}/.local/bin:${PATH}"
-eval "$(~/.local/bin/mise activate bash --shims)"
+eval "$(~/.local/bin/mise activate bash)"
 
 # Completiuons and integrations (moved from profile)
 
