@@ -19,27 +19,17 @@ export HISTCONTROL=ignoredups
 
 # PATH stuff
 
+# MACOS Applications
+[[ -d "${HOME}"/.antigravity/antigravity/bin &&
+  "$PATH" != *antigravity/antigravity/bin* ]] &&
+  export PATH="$PATH:${HOME}/.antigravity/antigravity/bin"
+
+[[ -d /Applications/Obsidian.app/Contents/MacOS &&
+  "$PATH" != */Applications/Obsidian.app/Contents/MacOS* ]] &&
+  export PATH="$PATH:/Applications/Obsidian.app/Contents/MacOS"
+
+# Personal bin/ directory
 export PATH="${HOME}/.local/bin:${PATH}"
-eval "$(~/.local/bin/mise activate bash)"
-
-# Completiuons and integrations (moved from profile)
-
-[[ -r "/opt/homebrew/bin/brew" ]] && eval "$(/opt/homebrew/bin/brew shellenv)"
-
-# bash completions
-export BASH_COMPLETION_COMPAT_DIR="/opt/homebrew/etc/bash_completion.d"
-[[ -r "/opt/homebrew/etc/profile.d/bash_completion.sh" ]] && . "/opt/homebrew/etc/profile.d/bash_completion.sh"
-
-# bash completion for git on mac:
-# shellcheck source=/Library/Developer/CommandLineTools/usr/share/git-core/git-completion.bash
-which xcode-select >&/dev/null && . "$(xcode-select -p)/usr/share/git-core/git-completion.bash"
-
-# Set up fzf key bindings and fuzzy completion
-eval "$(fzf --bash)"
-. "${HOME}/.local/bin/fzf-git.sh" # git fzf integration
-
-# mise completion
-eval "$(~/.local/bin/mise completion bash)"
 
 alias ls="ls --color=auto"
 
@@ -51,11 +41,30 @@ function go_to_project() {
   dir=$(fd . "$PROJECTS" --type d --max-depth 1 --exec basename {} \; | fzf --multi --tmux=center) &&
     cd "$PROJECTS/${dir}" || return
 }
+
+# Aliases
 alias p="go_to_project"
-
-eval "$(starship init bash)"
 alias s="starship toggle line_break"
-
 # peon-ping quick controls
-alias peon="bash ~/.claude/hooks/peon-ping/peon.sh"
-[ -f ~/.claude/hooks/peon-ping/completions.bash ] && source ~/.claude/hooks/peon-ping/completions.bash
+alias peon="bash \$HOME/.claude/hooks/peon-ping/peon.sh"
+
+if [[ -z "${ACTIVATIONS_DONE+x}" ]]; then
+  eval "$(~/.local/bin/mise activate bash)"
+  [[ -r "/opt/homebrew/bin/brew" ]] && eval "$(/opt/homebrew/bin/brew shellenv)"
+  # bash completions
+  [[ -d "/opt/homebrew/etc/bash_completion.d" ]] && export BASH_COMPLETION_COMPAT_DIR="/opt/homebrew/etc/bash_completion.d"
+  [[ -r "/opt/homebrew/etc/profile.d/bash_completion.sh" ]] && . "/opt/homebrew/etc/profile.d/bash_completion.sh"
+  # bash completion for git on mac:
+  # shellcheck source=/Library/Developer/CommandLineTools/usr/share/git-core/git-completion.bash
+  which xcode-select >&/dev/null && . "$(xcode-select -p)/usr/share/git-core/git-completion.bash"
+
+  # Set up fzf key bindings and fuzzy completion
+  eval "$(fzf --bash)"
+  . "${HOME}/.local/bin/fzf-git.sh" # git fzf integration
+
+  # mise completion
+  eval "$(~/.local/bin/mise completion bash)"
+  eval "$(starship init bash)"
+  [ -f "$HOME/.claude/hooks/peon-ping/completions.bash" ] && source "$HOME/.claude/hooks/peon-ping/completions.bash"
+  export ACTIVATIONS_DONE=true
+fi

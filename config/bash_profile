@@ -4,5 +4,3 @@
 [[ -r "${HOME}/.bashrc" ]] && . "${HOME}/.bashrc"
 
 
-# Added by Antigravity
-export PATH="/Users/dotan/.antigravity/antigravity/bin:$PATH"
