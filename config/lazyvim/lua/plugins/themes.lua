@@ -50,6 +50,10 @@ return {
     end,
   },
   {
+    "https://git.sr.ht/~p00f/alabaster.nvim",
+    name = "alabaster",
+  },
+  {
     "LazyVim/LazyVim",
     opts = {
       colorscheme = "tokyonight-moon",
