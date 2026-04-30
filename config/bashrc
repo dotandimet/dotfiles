@@ -48,23 +48,20 @@ alias s="starship toggle line_break"
 # peon-ping quick controls
 alias peon="bash \$HOME/.claude/hooks/peon-ping/peon.sh"
 
-if [[ -z "${ACTIVATIONS_DONE+x}" ]]; then
-  eval "$(~/.local/bin/mise activate bash)"
-  [[ -r "/opt/homebrew/bin/brew" ]] && eval "$(/opt/homebrew/bin/brew shellenv)"
-  # bash completions
-  [[ -d "/opt/homebrew/etc/bash_completion.d" ]] && export BASH_COMPLETION_COMPAT_DIR="/opt/homebrew/etc/bash_completion.d"
-  [[ -r "/opt/homebrew/etc/profile.d/bash_completion.sh" ]] && . "/opt/homebrew/etc/profile.d/bash_completion.sh"
-  # bash completion for git on mac:
-  # shellcheck source=/Library/Developer/CommandLineTools/usr/share/git-core/git-completion.bash
-  which xcode-select >&/dev/null && . "$(xcode-select -p)/usr/share/git-core/git-completion.bash"
+eval "$(~/.local/bin/mise activate bash)"
+[[ -r "/opt/homebrew/bin/brew" ]] && eval "$(/opt/homebrew/bin/brew shellenv)"
+# bash completions
+[[ -d "/opt/homebrew/etc/bash_completion.d" ]] && export BASH_COMPLETION_COMPAT_DIR="/opt/homebrew/etc/bash_completion.d"
+[[ -r "/opt/homebrew/etc/profile.d/bash_completion.sh" ]] && . "/opt/homebrew/etc/profile.d/bash_completion.sh"
+# bash completion for git on mac:
+# shellcheck source=/Library/Developer/CommandLineTools/usr/share/git-core/git-completion.bash
+which xcode-select >&/dev/null && . "$(xcode-select -p)/usr/share/git-core/git-completion.bash"
 
-  # Set up fzf key bindings and fuzzy completion
-  eval "$(fzf --bash)"
-  . "${HOME}/.local/bin/fzf-git.sh" # git fzf integration
+# Set up fzf key bindings and fuzzy completion
+eval "$(fzf --bash)"
+. "${HOME}/.local/bin/fzf-git.sh" # git fzf integration
 
-  # mise completion
-  eval "$(~/.local/bin/mise completion bash)"
-  eval "$(starship init bash)"
-  [ -f "$HOME/.claude/hooks/peon-ping/completions.bash" ] && source "$HOME/.claude/hooks/peon-ping/completions.bash"
-  export ACTIVATIONS_DONE=true
-fi
+# mise completion
+eval "$(~/.local/bin/mise completion bash)"
+eval "$(starship init bash)"
+[ -f "$HOME/.claude/hooks/peon-ping/completions.bash" ] && source "$HOME/.claude/hooks/peon-ping/completions.bash"
