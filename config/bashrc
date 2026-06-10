@@ -36,14 +36,23 @@ alias ls="ls --color=auto"
 export NVIM_APPNAME="lazyvim" # alternatives: astrovim, nvim_2025
 alias lv="env NVIM_APPNAME=lazyvim nvim"
 
+export PROJECTS="$HOME/Documents/code"
+
 function go_to_project() {
-  PROJECTS="$HOME/Documents/code"
   dir=$(fd . "$PROJECTS" --type d --max-depth 1 --exec basename {} \; | fzf --multi --tmux=center) &&
     cd "$PROJECTS/${dir}" || return
 }
 
+# Create a new project and cd into it (new-project script does the work).
+function new_project() {
+  local dir
+  dir=$(new-project "$@") || return
+  cd "${dir}" || return
+}
+
 # Aliases
 alias p="go_to_project"
+alias np="new_project"
 alias s="starship toggle line_break"
 # peon-ping quick controls
 alias peon="bash \$HOME/.claude/hooks/peon-ping/peon.sh"
