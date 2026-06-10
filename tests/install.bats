@@ -18,25 +18,19 @@ setup() {
   mkdir -p "$TEST_CONF_DIR/nvim"
   touch "$TEST_CONF_DIR/nvim/init.lua"
 
-  # Mock bin: curl (no-op), uname (returns Linux), mise
-  export PATH="$TEST_DIR/bin:$PATH"
-  mkdir -p "$TEST_DIR/bin"
-
-  printf '#!/bin/bash\nexit 0\n' >"$TEST_DIR/bin/curl"
-  printf '#!/bin/bash\necho Linux\n' >"$TEST_DIR/bin/uname"
-  chmod +x "$TEST_DIR/bin/curl" "$TEST_DIR/bin/uname"
-
-  mkdir -p "$HOME/.local/bin"
-  printf '#!/bin/bash\nexit 0\n' >"$HOME/.local/bin/mise"
-  chmod +x "$HOME/.local/bin/mise"
 }
 
 teardown() {
   rm -rf "$TEST_DIR"
 }
 
+# Source install.sh without running it, then invoke only the symlink logic.
+# This avoids exercising the software-installation step (curl/mise/brew),
+# which is covered separately by tests/docker_test_mac.sh.
 _run_install() {
-  bash "$DOTFILES_DIR/install.sh" "$TEST_CONF_DIR"
+  # shellcheck source=/dev/null
+  source "$DOTFILES_DIR/install.sh"
+  install_links "$TEST_CONF_DIR"
 }
 
 # --- dot-file symlinks (bashrc, bash_profile, inputrc) ---

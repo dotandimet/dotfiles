@@ -3,9 +3,6 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONF_DIR=${1:-"${SCRIPT_DIR}/config"} # configs are in ./config, can be overwritten by first argument to script
-TARGET_DIR=${XDG_CONFIG_HOME:-"${HOME}/.config"}
-[[ -d "${TARGET_DIR}" ]] || mkdir -p "${TARGET_DIR}"
 
 # install brew, brew software listed in the Brewfile,
 # and set bash as the default shell
@@ -25,6 +22,8 @@ function install_macos_stuff() {
 
 # Install symlinks for config files
 function symlink_config_files {
+  local CONF_DIR="$1"
+  local TARGET_DIR="$2"
   for CONF in ${CONF_DIR}/*; do
     CONF=$(basename "${CONF}")
     SRC="${CONF_DIR}/${CONF}"
@@ -82,28 +81,46 @@ function symlink_scripts {
   done
 }
 
-# Install config files
-echo "Installing dotfiles from ${CONF_DIR}"
-symlink_config_files
+# Install all symlinks (config files + scripts)
+function install_links {
+  # configs are in ./config, can be overwritten by first argument
+  local CONF_DIR=${1:-"${SCRIPT_DIR}/config"}
+  local TARGET_DIR=${XDG_CONFIG_HOME:-"${HOME}/.config"}
+  [[ -d "${TARGET_DIR}" ]] || mkdir -p "${TARGET_DIR}"
 
-# Install scripts
-symlink_scripts
+  echo "Installing dotfiles from ${CONF_DIR}"
+  symlink_config_files "${CONF_DIR}" "${TARGET_DIR}"
 
-# Install software:
-echo "Installing software"
+  symlink_scripts
+}
 
-if uname -a | grep -q Darwin; then
-  echo "Installing macos stuff"
-  install_macos_stuff
+# Install software (Homebrew on macOS, then mise + mise-managed tools)
+function install_software {
+  echo "Installing software"
+
+  if uname -a | grep -q Darwin; then
+    echo "Installing macos stuff"
+    install_macos_stuff
+  fi
+
+  if [[ -x ~/.local/bin/mise ]]; then
+    echo "mise package manager installed"
+  else
+    curl https://mise.run | sh
+  fi
+
+  echo "Installing mise software..."
+  eval "$(~/.local/bin/mise activate bash --shims)" # so any shims added are available in the installlation
+  ~/.local/bin/mise install
+}
+
+function main {
+  install_links "$@"
+  install_software
+  echo "DONE"
+}
+
+# Only run when executed directly, not when sourced (bash __main__ trick)
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  main "$@"
 fi
-
-if [[ -x ~/.local/bin/mise ]]; then
-  echo "mise package manager installed"
-else
-  curl https://mise.run | sh
-fi
-
-echo "Installing mise software..."
-eval "$(~/.local/bin/mise activate bash --shims)" # so any shims added are available in the installlation
-~/.local/bin/mise install
-echo "DONE"
