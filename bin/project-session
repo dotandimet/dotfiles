@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+
+# Start (or resume) a tmux session for a project.
+#
+# Usage: project-session [project-name]
+#
+# Given a project name, look for a tmux session with that name and
+# attach/switch to it. If none exists, create a session with three windows
+# named `vim`, `pi` and `git`, each cd'd into the project directory under
+# $PROJECTS (defaults to ~/Documents/code). `nvim` runs in the `vim` window,
+# `pi` runs in the `pi` window, and the session ends focused on the `pi`
+# window.
+
+set -euo pipefail
+
+PROJECTS="${PROJECTS:-$HOME/Documents/code}"
+
+die() {
+  printf 'Error: %s\n' "$*" >&2
+  exit 1
+}
+
+command -v tmux >/dev/null 2>&1 || die "tmux not found"
+
+name="${1:-}"
+if [[ -z "${name}" ]]; then
+  if [[ -r /dev/tty ]]; then
+    read -r -p "Project name: " name </dev/tty
+  else
+    read -r -p "Project name: " name
+  fi
+fi
+name="$(printf '%s' "${name}" | tr -d '[:space:]')"
+[[ -n "${name}" ]] || die "no project name given"
+
+dir="${PROJECTS}/${name}"
+[[ -d "${dir}" ]] || die "${dir} does not exist"
+
+# tmux session names cannot contain '.' or ':'.
+session="$(printf '%s' "${name}" | tr '.:' '__')"
+
+# Attach if we're outside tmux, otherwise switch the attached client.
+attach_or_switch() {
+  if [[ -n "${TMUX:-}" ]]; then
+    tmux switch-client -t "${session}"
+  else
+    tmux attach-session -t "${session}"
+  fi
+}
+
+if tmux has-session -t "=${session}" 2>/dev/null; then
+  attach_or_switch
+  exit 0
+fi
+
+# Create a detached session with the three windows.
+tmux new-session -d -s "${session}" -n vim -c "${dir}"
+tmux new-window -t "${session}:" -n pi -c "${dir}"
+tmux new-window -t "${session}:" -n git -c "${dir}"
+
+# Launch tools in their windows.
+tmux send-keys -t "${session}:vim" 'nvim' C-m
+tmux send-keys -t "${session}:pi" 'pi' C-m
+
+# Finish focused on the pi window.
+tmux select-window -t "${session}:pi"
+
+attach_or_switch

@@ -53,6 +53,7 @@ function new_project() {
 # Aliases
 alias p="go_to_project"
 alias np="new_project"
+alias psn="project-session"
 alias s="starship toggle line_break"
 # peon-ping quick controls
 alias peon="bash \$HOME/.claude/hooks/peon-ping/peon.sh"
