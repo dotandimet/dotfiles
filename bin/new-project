@@ -23,17 +23,13 @@ die() {
 
 name="${1:-}"
 if [[ -z "${name}" ]]; then
-  if [[ -r /dev/tty ]]; then
-    read -r -p "Project name: " name </dev/tty
-  else
-    read -r -p "Project name: " name
-  fi
+  read -r -t 60 -p "Project name: " name
 fi
 name="$(printf '%s' "${name}" | tr -d '[:space:]')"
 [[ -n "${name}" ]] || die "no project name given"
 
 case "${name}" in
-*/* | .* ) die "invalid project name: ${name}" ;;
+*/* | .*) die "invalid project name: ${name}" ;;
 esac
 
 dir="${PROJECTS}/${name}"
