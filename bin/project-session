@@ -20,24 +20,19 @@ die() {
   exit 1
 }
 
-command -v tmux >/dev/null 2>&1 || die "tmux not found"
-
 name="${1:-}"
 if [[ -z "${name}" ]]; then
-  if [[ -r /dev/tty ]]; then
-    read -r -p "Project name: " name </dev/tty
-  else
-    read -r -p "Project name: " name
-  fi
+  name=$(fd . "$PROJECTS" --type d --max-depth 1 --exec basename {} \; | fzf --multi --tmux=center)
 fi
-name="$(printf '%s' "${name}" | tr -d '[:space:]')"
-[[ -n "${name}" ]] || die "no project name given"
 
 dir="${PROJECTS}/${name}"
 [[ -d "${dir}" ]] || die "${dir} does not exist"
 
 # tmux session names cannot contain '.' or ':'.
 session="$(printf '%s' "${name}" | tr '.:' '__')"
+
+# Do we have tmux? (use which and not command, because tests wrap tmux)
+which tmux >/dev/null 2>&1 || die "tmux not found"
 
 # Attach if we're outside tmux, otherwise switch the attached client.
 attach_or_switch() {
