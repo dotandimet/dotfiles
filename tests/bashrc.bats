@@ -10,18 +10,17 @@ setup() {
 
   # Create dirs while system PATH is still intact
   mkdir -p "$HOME/.local/bin"
-  mkdir -p "$HOME/.claude/hooks/peon-ping"
   mkdir -p "$TEST_DIR/bin"
 
   # mise: used twice (activate --shims and completion bash)
-  cat > "$HOME/.local/bin/mise" << 'EOF'
+  cat >"$HOME/.local/bin/mise" <<'EOF'
 #!/bin/bash
 exit 0
 EOF
   chmod +x "$HOME/.local/bin/mise"
 
   # fzf --bash: sourced for key bindings
-  cat > "$TEST_DIR/bin/fzf" << 'EOF'
+  cat >"$TEST_DIR/bin/fzf" <<'EOF'
 #!/bin/bash
 exit 0
 EOF
@@ -31,7 +30,7 @@ EOF
   touch "$HOME/.local/bin/fzf-git.sh"
 
   # starship init bash: sourced for prompt
-  cat > "$TEST_DIR/bin/starship" << 'EOF'
+  cat >"$TEST_DIR/bin/starship" <<'EOF'
 #!/bin/bash
 exit 0
 EOF
