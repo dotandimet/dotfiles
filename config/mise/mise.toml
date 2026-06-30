@@ -1,10 +1,13 @@
+[settings]
+env_cache = true
+hook_env.chpwd_only = true
+
 [tools]
 # hadolint = "latest"
 claude = "2.1.187"
 codex = "0.142.0"
 fd = "10.4.2"
 fzf = "0.73.1"
-gemini-cli = "0.47.0"
 gh = "2.95.0"
 jq = { version = "1.8.1", os = ["linux"] }
 neovim = { version = "0.12.3", os = ["linux"] }
