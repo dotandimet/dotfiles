@@ -35,7 +35,10 @@ alias lv="env NVIM_APPNAME=lazyvim nvim"
 export PROJECTS="$HOME/Documents/code"
 
 function go_to_project() {
-  dir=$(fd . "$PROJECTS" --type d --max-depth 1 --exec basename {} \; | fzf --multi --tmux=center) &&
+  local dir
+  local query="$*"
+
+  dir=$(fd . "$PROJECTS" --type d --max-depth 1 --exec basename {} \; | fzf --multi --tmux=center --query="$query") &&
     cd "$PROJECTS/${dir}" || return
 }
 
