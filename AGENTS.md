@@ -6,9 +6,7 @@ Instructions for coding agents working in this repository.
 
 - **This is a public repository.** Never commit sensitive content: API keys,
   tokens, passwords, private hostnames, internal company names, customer data,
-  or anything that should remain private. When writing examples in skills or
-  documentation, use generic domain concepts (e.g., `Order`, `Product`) rather
-  than real internal names.
+  or anything that should remain private.
 - This is a dotfiles repository managed through symlinks. Edit files in this
   repository, not files under `~/.config/` or other installed locations.
 - When modifying Neovim configuration, do so only under `config/lazyvim` unless
