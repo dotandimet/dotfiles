@@ -1,0 +1,63 @@
+# Herdr configuration
+# Installed by this dotfiles repo as ~/.config/herdr/config.toml
+
+onboarding = false
+
+[theme]
+# Match the tmux Tokyo Night setup.
+name = "tokyo-night"
+auto_switch = false
+
+[terminal]
+# Like the tmux bindings that open windows/splits in the current pane's path.
+new_cwd = "follow"
+
+[keys]
+# Match tmux: use C-a as the prefix instead of C-b.
+prefix = "ctrl+a"
+
+# Keep the familiar tmux-ish basics.
+new_tab = "prefix+c"
+switch_tab = "prefix+1..9"
+previous_tab = "prefix+p"
+next_tab = "prefix+n"
+
+# Tmux-like tab lookup/rename:
+#   prefix+' opens Herdr's navigator; type a few tab-name chars, then Enter.
+#   prefix+, renames the active tab.
+goto = "prefix+quote"
+rename_tab = "prefix+comma"
+
+# Tmux-like toggle pane, perhaps?
+last_pane = "prefix+prefix"
+
+# Herdr's safe/default split bindings for now:
+#   prefix+v     side-by-side split
+#   prefix+minus top/bottom split
+split_vertical = "prefix+v"
+split_horizontal = "prefix+minus"
+
+# Vim-style pane movement, similar in spirit to vim-tmux-navigator.
+focus_pane_left = "prefix+h"
+focus_pane_down = "prefix+j"
+focus_pane_up = "prefix+k"
+focus_pane_right = "prefix+l"
+
+close_pane = "prefix+x"
+zoom = "prefix+z"
+reload_config = "prefix+shift+r"
+toggle_sidebar = "prefix+b"
+
+[ui]
+# Closer to tmux's immediate `new-window` behavior.
+prompt_new_tab_name = false
+
+pane_borders = true
+pane_gaps = true
+
+[ui.toast]
+delivery = "herdr"
+
+[advanced]
+# Larger pane scrollback, analogous to tmux's increased history-limit.
+scrollback_limit_bytes = 100000000
