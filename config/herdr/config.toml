@@ -28,8 +28,6 @@ next_tab = "prefix+n"
 goto = "prefix+quote"
 rename_tab = "prefix+comma"
 
-# Tmux-like toggle pane, perhaps?
-last_pane = "prefix+prefix"
 
 # Herdr's safe/default split bindings for now:
 #   prefix+v     side-by-side split
