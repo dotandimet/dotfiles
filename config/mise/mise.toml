@@ -4,23 +4,23 @@ hook_env.chpwd_only = true
 
 [tools]
 # hadolint = "latest"
-claude = "2.1.197"
-codex = "0.142.4"
+claude = "2.1.216"
+codex = "0.144.6"
 fd = "10.4.2"
-fzf = "0.73.1"
-gh = "2.95.0"
+fzf = "0.74.1"
+gh = "2.96.0"
 jq = { version = "1.8.1", os = ["linux"] }
 neovim = { version = "0.12.3", os = ["linux"] }
-node = "26.4.0"
-perl = { version = "5.42.2.0" }
-pi = "0.80.3"
+node = "26.5.0"
+perl = "5.44.0.0"
+pi = "0.80.10"
 python = "3.14.6"
-ripgrep = "15.1.0"
+ripgrep = "15.2.0"
 shellcheck = "0.11.0"
 starship = "1.26.0"
 tmux = { version = "3.6b", os = ["linux"] }
-usage = "3.5.3"
+usage = "3.5.5"
 "npm:@mariozechner/gccli" = "0.1.2"
 "npm:@mariozechner/gmcli" = "0.2.0"
 "npm:@mariozechner/gdcli" = "0.1.1"
-herdr = "0.7.1"
+herdr = "0.7.4"
