@@ -73,5 +73,6 @@ eval "$(~/.local/bin/mise completion bash)"
 eval "$(starship init bash)"
 
 # flyline
-enable -f $(mise bin-paths github:HalFrgrd/flyline)/$(mise bin-paths --bin-names github:HalFrgrd/flyline) flylinenable -f $(mise bin-paths github:HalFrgrd/flyline)/$(mise bin-paths --bin-names github:HalFrgrd/flyline) flylienable -f $(mise bin-paths github:HalFrgrd/flyline)/$(mise bin-paths --bin-names github:HalFrgrd/flyline) flyline
+FLYLINE="$(mise bin-paths github:HalFrgrd/flyline)/$(mise bin-paths --bin-names github:HalFrgrd/flyline)"
+enable -f "$FLYLINE" flyline
 flyline create-prompt-widget mouse-mode --name MOUSE_MODE 'ON ' 'OFF' && RPS1=" MOUSE_MODE $RPS1"
