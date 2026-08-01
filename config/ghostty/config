@@ -10,4 +10,4 @@ background-opacity = 0.9
 adjust-cell-width = -10%
 macos-option-as-alt = true
 keybind = shift+option+B=toggle_background_opacity
-
+cursor-click-to-move = false
