@@ -76,3 +76,5 @@ eval "$(starship init bash)"
 FLYLINE="$(mise bin-paths github:HalFrgrd/flyline)/$(mise bin-paths --bin-names github:HalFrgrd/flyline)"
 enable -f "$FLYLINE" flyline
 flyline create-prompt-widget mouse-mode --name MOUSE_MODE 'ON ' 'OFF' && RPS1=" MOUSE_MODE $RPS1"
+flyline set-agent-mode --system-prompt \
+  "Be concise. Answer with a JSON array of at most 3 items with objects containing: command and description. Command will be a Bash command." --trigger-prefix ': ' --command 'pi --thinking low --print'
