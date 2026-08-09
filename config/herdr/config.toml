@@ -46,6 +46,15 @@ zoom = "prefix+z"
 reload_config = "prefix+shift+r"
 toggle_sidebar = "prefix+b"
 
+[[keys.command]]
+key = "prefix+o"
+type = "popup"
+width = "60%"
+height = 20
+command = "exec project-picker"
+#["bash", "fd . \"$PROJECTS\" --type d --max-depth 1 --exec basename {} \; | fzf"]
+description = "Select Project"
+
 [ui]
 # Closer to tmux's immediate `new-window` behavior.
 prompt_new_tab_name = false

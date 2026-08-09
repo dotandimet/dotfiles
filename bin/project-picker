@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+PROJECTS="${PROJECTS:-$HOME/Documents/code}"
+
+die() {
+  printf 'Error: %s\n' "$*" >&2
+  exit 1
+}
+
+query="${1:-}"
+projects=$(fd . "$PROJECTS" --type d --max-depth 1 --exec basename {} \; | fzf --multi --query="$query")
+
+while IFS= read -r project; do
+  project_dir="$PROJECTS/$project"
+
+  workspace=$(herdr workspace create --cwd "$project_dir" --label "$project")
+  workspace_id=$(printf '%s' "$workspace" | jq -r '.result.workspace.workspace_id')
+  pi_tab_id=$(printf '%s' "$workspace" | jq -r '.result.tab.tab_id')
+  pi_pane_id=$(printf '%s' "$workspace" | jq -r '.result.root_pane.pane_id')
+
+  herdr tab rename "$pi_tab_id" pi
+  herdr pane run "$pi_pane_id" pi
+
+  nvim_tab=$(herdr tab create --workspace "$workspace_id" --cwd "$project_dir" --label nvim)
+  nvim_pane_id=$(printf '%s' "$nvim_tab" | jq -r '.result.root_pane.pane_id')
+  herdr pane run "$nvim_pane_id" nvim
+
+  bash_tab=$(herdr tab create --workspace "$workspace_id" --cwd "$project_dir" --label bash)
+  bash_pane_id=$(printf '%s' "$bash_tab" | jq -r '.result.root_pane.pane_id')
+  herdr pane run "$bash_pane_id" bash
+done <<< "$projects"
+
+
