@@ -4,13 +4,18 @@ hook_env.chpwd_only = true
 
 [tools]
 # hadolint = "latest"
+"github:HalFrgrd/flyline" = "latest"
+"npm:@mariozechner/gccli" = "0.1.2"
+"npm:@mariozechner/gdcli" = "0.1.1"
+"npm:@mariozechner/gmcli" = "0.2.0"
+"npm:defuddle" = "0.19.2"
 claude = "2.1.220"
 codex = "0.146.0"
 fd = "10.4.2"
 fzf = "0.74.1"
 gh = "2.97.0"
-jq = { version = "1.8.1", os = ["linux"] }
-neovim = { version = "0.12.3", os = ["linux"] }
+herdr = "0.7.5"
+jq = "1.8.1"
 node = "26.5.1"
 perl = "5.44.0.0"
 pi = "0.83.0"
@@ -18,10 +23,6 @@ python = "3.14.6"
 ripgrep = "15.2.0"
 shellcheck = "0.11.0"
 starship = "1.26.0"
-tmux = { version = "3.6b", os = ["linux"] }
 usage = "4.1.0"
-"npm:@mariozechner/gccli" = "0.1.2"
-"npm:@mariozechner/gmcli" = "0.2.0"
-"npm:@mariozechner/gdcli" = "0.1.1"
-herdr = "0.7.5"
-"github:HalFrgrd/flyline" = "latest"
+yt-dlp = "latest"
+
