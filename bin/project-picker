@@ -11,6 +11,7 @@ die() {
 
 query="${1:-}"
 projects=$(fd . "$PROJECTS" --type d --max-depth 1 --exec basename {} \; | fzf --multi --query="$query")
+first_pi_tab_id=""
 
 while IFS= read -r project; do
   project_dir="$PROJECTS/$project"
@@ -19,6 +20,9 @@ while IFS= read -r project; do
   workspace_id=$(printf '%s' "$workspace" | jq -r '.result.workspace.workspace_id')
   pi_tab_id=$(printf '%s' "$workspace" | jq -r '.result.tab.tab_id')
   pi_pane_id=$(printf '%s' "$workspace" | jq -r '.result.root_pane.pane_id')
+  if [[ -z "$first_pi_tab_id" ]]; then
+    first_pi_tab_id="$pi_tab_id"
+  fi
 
   herdr tab rename "$pi_tab_id" pi
   herdr pane run "$pi_pane_id" pi
@@ -32,4 +36,4 @@ while IFS= read -r project; do
   herdr pane run "$bash_pane_id" bash
 done <<< "$projects"
 
-
+herdr tab focus "$first_pi_tab_id"
