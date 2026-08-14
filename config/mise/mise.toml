@@ -1,6 +1,7 @@
 [settings]
 env_cache = true
 hook_env.chpwd_only = true
+prefer_offline = true
 
 [tools]
 # hadolint = "latest"
