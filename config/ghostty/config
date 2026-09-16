@@ -10,4 +10,7 @@ background-opacity = 0.9
 adjust-cell-width = -10%
 macos-option-as-alt = true
 keybind = shift+option+B=toggle_background_opacity
+# flyline recommends: (https://github.com/HalFrgrd/flyline#ghostty)
 cursor-click-to-move = false
+# pi recommneds: (https://github.com/earendil-works/pi/blob/v0.85.0/packages/coding-agent/docs/terminal-setup.md#ghostty)
+keybind = alt+backspace=text:\x1b\x7f
