@@ -3,6 +3,9 @@ env_cache = true
 hook_env.chpwd_only = true
 prefer_offline = true
 
+[settings.npm]
+shell_out = true
+
 [tools]
 # hadolint = "latest"
 "github:HalFrgrd/flyline" = "latest"
