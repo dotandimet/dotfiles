@@ -18,6 +18,9 @@ echo "$BASE_DIR"
 
 # check container system is up and running
 container system status >&/dev/null || container system start
-container build --tag dotfiles-test --build-arg DOTFILES_SOURCE=dotfiles.tar \
+
+env GITHUB_TOKEN=$(gh auth token) \
+  container build --tag dotfiles-test --build-arg DOTFILES_SOURCE=dotfiles.tar \
+  --secret id=GITHUB_TOKEN,env=GITHUB_TOKEN \
   --file "${BASE_DIR}/Dockerfile" "$BASE_DIR" &&
   container run --name my-dotfiles --interactive --tty --rm dotfiles-test
