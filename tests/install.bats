@@ -33,6 +33,54 @@ _run_install() {
   install_links "$TEST_CONF_DIR"
 }
 
+# --- invalid source directories ---
+
+@test "missing config directory fails without creating a literal wildcard link" {
+  rm -rf "$TEST_CONF_DIR"
+  run _run_install
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"No configuration files found"* ]]
+  [ ! -L "$XDG_CONFIG_HOME/*" ]
+}
+
+@test "empty config directory fails without creating a literal wildcard link" {
+  rm -rf "$TEST_CONF_DIR"
+  mkdir -p "$TEST_CONF_DIR"
+  run _run_install
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"No configuration files found"* ]]
+  [ ! -L "$XDG_CONFIG_HOME/*" ]
+}
+
+_run_install_with_test_scripts() {
+  source "$DOTFILES_DIR/install.sh"
+  SCRIPT_DIR="$TEST_DIR"
+  install_links "$TEST_CONF_DIR"
+}
+
+@test "missing scripts directory fails without creating a literal wildcard link" {
+  run _run_install_with_test_scripts
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"No scripts found"* ]]
+  [ ! -L "$HOME/.local/bin/*" ]
+}
+
+@test "empty scripts directory fails without creating a literal wildcard link" {
+  mkdir -p "$TEST_DIR/bin"
+  run _run_install_with_test_scripts
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"No scripts found"* ]]
+  [ ! -L "$HOME/.local/bin/*" ]
+}
+
+@test "config directory paths containing spaces are supported" {
+  mv "$TEST_CONF_DIR" "$TEST_DIR/config with spaces"
+  TEST_CONF_DIR="$TEST_DIR/config with spaces"
+  run _run_install
+  [ "$status" -eq 0 ]
+  [ "$(readlink "$HOME/.bashrc")" = "$TEST_CONF_DIR/bashrc" ]
+}
+
 # --- dot-file symlinks (bashrc, bash_profile, inputrc) ---
 
 @test "bashrc is symlinked to ~/.bashrc" {

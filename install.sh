@@ -24,7 +24,12 @@ function install_macos_stuff() {
 function symlink_config_files {
   local CONF_DIR="$1"
   local TARGET_DIR="$2"
-  for CONF in ${CONF_DIR}/*; do
+  local CONFIG_FILES=("${CONF_DIR}"/*)
+  if [[ ! -e "${CONFIG_FILES[0]:-}" && ! -L "${CONFIG_FILES[0]:-}" ]]; then
+    echo "No configuration files found in ${CONF_DIR}" >&2
+    return 1
+  fi
+  for CONF in "${CONFIG_FILES[@]}"; do
     CONF=$(basename "${CONF}")
     SRC="${CONF_DIR}/${CONF}"
     TARGET=""
@@ -59,8 +64,13 @@ function symlink_config_files {
 function symlink_scripts {
   SCRIPTS_DIR="${SCRIPT_DIR}/bin"
   TARGET_SCRIPTS_DIR="${HOME}/.local/bin"
+  local SCRIPT_FILES=("${SCRIPTS_DIR}"/*)
+  if [[ ! -e "${SCRIPT_FILES[0]:-}" && ! -L "${SCRIPT_FILES[0]:-}" ]]; then
+    echo "No scripts found in ${SCRIPTS_DIR}" >&2
+    return 1
+  fi
   [[ -d "${TARGET_SCRIPTS_DIR}" ]] || mkdir -p "${TARGET_SCRIPTS_DIR}"
-  for SCRIPT in ${SCRIPTS_DIR}/*; do
+  for SCRIPT in "${SCRIPT_FILES[@]}"; do
     SCRIPT=$(basename "${SCRIPT}")
     SRC="${SCRIPTS_DIR}/${SCRIPT}"
     TARGET="${TARGET_SCRIPTS_DIR}/${SCRIPT}"
