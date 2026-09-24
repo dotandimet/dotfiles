@@ -43,7 +43,7 @@ USER developer
 
 # Make the main installation script executable
 # and execute it
-RUN chmod +x install.sh && ./install.sh
+RUN chmod +x install.sh && env MISE_MINIMUM_RELEASE_AGE=0s ./install.sh
 
 # Set the default command to start a login shell.
 # This will ensure that shell profiles like .bash_profile are loaded.
