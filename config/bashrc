@@ -55,8 +55,8 @@ alias np="new_project"
 alias psn="project-session"
 alias s="starship toggle line_break"
 
-eval "$(~/.local/bin/mise activate bash)"
 [[ -r "/opt/homebrew/bin/brew" ]] && eval "$(/opt/homebrew/bin/brew shellenv)"
+eval "$(~/.local/bin/mise activate bash)"
 # bash completions
 [[ -d "/opt/homebrew/etc/bash_completion.d" ]] && export BASH_COMPLETION_COMPAT_DIR="/opt/homebrew/etc/bash_completion.d"
 [[ -r "/opt/homebrew/etc/profile.d/bash_completion.sh" ]] && . "/opt/homebrew/etc/profile.d/bash_completion.sh"
