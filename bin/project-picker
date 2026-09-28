@@ -4,36 +4,92 @@ set -euo pipefail
 
 PROJECTS="${PROJECTS:-$HOME/Documents/code}"
 
-die() {
-  printf 'Error: %s\n' "$*" >&2
-  exit 1
+create_project() {
+  local project="$1"
+  case "$project" in
+    ""|.|..|*/*)
+      printf 'Error: Project name must be a single directory name\n' >&2
+      return 1
+      ;;
+  esac
+  mkdir -p -- "$PROJECTS/$project"
 }
 
-query="${1:-}"
-projects=$(fd . "$PROJECTS" --type d --max-depth 1 --exec basename {} \; | fzf --multi --query="$query")
-first_pi_tab_id=""
+# Print selected project names, creating a project for an unmatched query.
+pick_projects() {
+  local query="${1:-}"
+  local project_names selection projects="" picker_status=0
 
-while IFS= read -r project; do
-  project_dir="$PROJECTS/$project"
+  mkdir -p -- "$PROJECTS" || return
+  project_names=$(fd . "$PROJECTS" --type d --max-depth 1 --exec basename {} \;) || return
+  selection=$(printf '%s\n' "$project_names" | fzf --multi --print-query --query="$query") || picker_status=$?
+  case "$picker_status" in
+    0|1) ;;
+    *) return "$picker_status" ;;
+  esac
 
-  workspace=$(herdr workspace create --cwd "$project_dir" --label "$project")
-  workspace_id=$(printf '%s' "$workspace" | jq -r '.result.workspace.workspace_id')
-  pi_tab_id=$(printf '%s' "$workspace" | jq -r '.result.tab.tab_id')
-  pi_pane_id=$(printf '%s' "$workspace" | jq -r '.result.root_pane.pane_id')
-  if [[ -z "$first_pi_tab_id" ]]; then
-    first_pi_tab_id="$pi_tab_id"
+  query="${selection%%$'\n'*}"
+  if [[ "$selection" == *$'\n'* ]]; then
+    projects="${selection#*$'\n'}"
   fi
 
-  herdr tab rename "$pi_tab_id" pi
-  herdr pane run "$pi_pane_id" pi
+  if [[ -z "$projects" ]]; then
+    [[ -n "$query" ]] || return 0
+    create_project "$query" || return
+    projects="$query"
+  fi
+  printf '%s\n' "$projects"
+}
 
-  nvim_tab=$(herdr tab create --workspace "$workspace_id" --cwd "$project_dir" --label nvim)
-  nvim_pane_id=$(printf '%s' "$nvim_tab" | jq -r '.result.root_pane.pane_id')
-  herdr pane run "$nvim_pane_id" nvim
+create_command_tab() {
+  local workspace_id="$1" project_dir="$2" command="$3"
+  local tab pane_id
 
-  bash_tab=$(herdr tab create --workspace "$workspace_id" --cwd "$project_dir" --label bash)
-  bash_pane_id=$(printf '%s' "$bash_tab" | jq -r '.result.root_pane.pane_id')
-  herdr pane run "$bash_pane_id" bash
-done <<< "$projects"
+  tab=$(herdr tab create --workspace "$workspace_id" --cwd "$project_dir" --label "$command") || return
+  pane_id=$(printf '%s' "$tab" | jq -r '.result.root_pane.pane_id') || return
+  herdr pane run "$pane_id" "$command" > /dev/null
+}
 
-herdr tab focus "$first_pi_tab_id"
+# Print the pi tab ID; keep other Herdr responses out of this return value.
+create_project_workspace() {
+  local project="$1"
+  local project_dir="$PROJECTS/$project"
+  local workspace workspace_id pi_tab_id pi_pane_id
+
+  workspace=$(herdr workspace create --cwd "$project_dir" --label "$project") || return
+  workspace_id=$(printf '%s' "$workspace" | jq -r '.result.workspace.workspace_id') || return
+  pi_tab_id=$(printf '%s' "$workspace" | jq -r '.result.tab.tab_id') || return
+  pi_pane_id=$(printf '%s' "$workspace" | jq -r '.result.root_pane.pane_id') || return
+
+  herdr tab rename "$pi_tab_id" pi > /dev/null || return
+  herdr pane run "$pi_pane_id" pi > /dev/null || return
+  create_command_tab "$workspace_id" "$project_dir" nvim || return
+  create_command_tab "$workspace_id" "$project_dir" bash || return
+  printf '%s\n' "$pi_tab_id"
+}
+
+open_projects() {
+  local projects="$1"
+  local project pi_tab_id first_pi_tab_id=""
+
+  [[ -n "$projects" ]] || return 0
+  while IFS= read -r project; do
+    pi_tab_id=$(create_project_workspace "$project") || return
+    if [[ -z "$first_pi_tab_id" ]]; then
+      first_pi_tab_id="$pi_tab_id"
+    fi
+  done <<< "$projects"
+
+  herdr tab focus "$first_pi_tab_id"
+}
+
+main() {
+  local projects
+  projects=$(pick_projects "${1:-}") || return
+  open_projects "$projects"
+}
+
+# Only run when executed directly, not when sourced.
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  main "$@"
+fi
