@@ -55,6 +55,15 @@ command = "exec project-picker"
 #["bash", "fd . \"$PROJECTS\" --type d --max-depth 1 --exec basename {} \; | fzf"]
 description = "Select Project"
 
+# Custom commands inherit the focused pane's working directory.
+[[keys.command]]
+key = "prefix+g"
+type = "popup"
+width = "80%"
+height = "80%"
+command = "exec lazygit"
+description = "Lazygit"
+
 [ui]
 # Closer to tmux's immediate `new-window` behavior.
 prompt_new_tab_name = false
