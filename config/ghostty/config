@@ -6,7 +6,7 @@ config-file = ?auto/theme.ghostty
 font-family = "Comic Shanns Mono"
 font-size = 16.0
 background-opacity = 0.9
-# make more compact, like wezterm
+# make cells more compact
 adjust-cell-width = -10%
 macos-option-as-alt = true
 keybind = shift+option+B=toggle_background_opacity

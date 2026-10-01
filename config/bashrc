@@ -29,7 +29,7 @@ export PATH="${HOME}/.local/bin:${PATH}"
 
 alias ls="ls --color=auto"
 
-export NVIM_APPNAME="lazyvim" # alternatives: astrovim, nvim_2025
+export NVIM_APPNAME="lazyvim"
 alias lv="env NVIM_APPNAME=lazyvim nvim"
 
 export PROJECTS="$HOME/Documents/code"

@@ -142,15 +142,9 @@ Configured with:
 - Large scrollback history
 - RGB color support
 
-### Terminal emulators
+### Terminal emulator
 
-Configured terminal environments include:
-
-- Ghostty (current primary terminal)
-- WezTerm
-- Kitty
-
-Common characteristics:
+Ghostty is the configured terminal, with:
 
 - Nerd Font support (Comic Shanns Mono)
 - Consistent dark themes
