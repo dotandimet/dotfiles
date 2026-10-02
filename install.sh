@@ -38,6 +38,8 @@ function symlink_config_files {
       "${CONF}" == "inputrc" ||
       "${CONF}" == "vimrc" ||
       "${CONF}" == "gemini" ||
+      "${CONF}" == "pi" ||
+      "${CONF}" == "agents" ||
       "${CONF}" == "tmux.conf" ]] \
       ; then
       TARGET="${HOME}/.${CONF}"

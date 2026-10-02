@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "xcode": {
+      "command": "xcrun",
+      "args": [
+        "mcpbridge"
+      ],
+      "exposure": "direct",
+      "enabled": false
+    },
+    "Haaretz": {
+      "url": "https://raily.haaretz.co.il/mcp",
+      "exposure": "codemode",
+      "enabled": false
+    }
+  }
+}

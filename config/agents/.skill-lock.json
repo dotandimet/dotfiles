@@ -1,0 +1,263 @@
+{
+  "version": 3,
+  "skills": {
+    "defuddle": {
+      "source": "git@github.com:kepano/obsidian-skills.git",
+      "sourceType": "git",
+      "sourceUrl": "git@github.com:kepano/obsidian-skills.git",
+      "skillPath": "skills/defuddle/SKILL.md",
+      "skillFolderHash": "",
+      "installedAt": "2026-03-22T18:23:26.873Z",
+      "updatedAt": "2026-03-22T18:23:26.873Z"
+    },
+    "json-canvas": {
+      "source": "git@github.com:kepano/obsidian-skills.git",
+      "sourceType": "git",
+      "sourceUrl": "git@github.com:kepano/obsidian-skills.git",
+      "skillPath": "skills/json-canvas/SKILL.md",
+      "skillFolderHash": "",
+      "installedAt": "2026-03-22T18:23:26.875Z",
+      "updatedAt": "2026-03-22T18:23:26.875Z"
+    },
+    "obsidian-bases": {
+      "source": "git@github.com:kepano/obsidian-skills.git",
+      "sourceType": "git",
+      "sourceUrl": "git@github.com:kepano/obsidian-skills.git",
+      "skillPath": "skills/obsidian-bases/SKILL.md",
+      "skillFolderHash": "",
+      "installedAt": "2026-03-22T18:23:26.876Z",
+      "updatedAt": "2026-03-22T18:23:26.876Z"
+    },
+    "obsidian-cli": {
+      "source": "git@github.com:kepano/obsidian-skills.git",
+      "sourceType": "git",
+      "sourceUrl": "git@github.com:kepano/obsidian-skills.git",
+      "skillPath": "skills/obsidian-cli/SKILL.md",
+      "skillFolderHash": "",
+      "installedAt": "2026-03-22T18:23:26.876Z",
+      "updatedAt": "2026-03-22T18:23:26.876Z"
+    },
+    "obsidian-markdown": {
+      "source": "git@github.com:kepano/obsidian-skills.git",
+      "sourceType": "git",
+      "sourceUrl": "git@github.com:kepano/obsidian-skills.git",
+      "skillPath": "skills/obsidian-markdown/SKILL.md",
+      "skillFolderHash": "",
+      "installedAt": "2026-03-22T18:23:26.877Z",
+      "updatedAt": "2026-03-22T18:23:26.877Z"
+    },
+    "find-skills": {
+      "source": "vercel-labs/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/vercel-labs/skills.git",
+      "skillPath": "skills/find-skills/SKILL.md",
+      "skillFolderHash": "3013fdeb8a11b10b1eb795ec3ae8bfca38f7c26d",
+      "installedAt": "2026-03-22T18:23:36.304Z",
+      "updatedAt": "2026-03-22T18:23:36.304Z"
+    },
+    "documentation": {
+      "source": "mcollina/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/mcollina/skills.git",
+      "skillPath": "skills/documentation/SKILL.md",
+      "skillFolderHash": "574f1f96ac6ba36d569e553d64c11039a1958912",
+      "installedAt": "2026-03-22T18:26:04.925Z",
+      "updatedAt": "2026-03-22T18:26:04.925Z"
+    },
+    "fastify-best-practices": {
+      "source": "mcollina/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/mcollina/skills.git",
+      "skillPath": "skills/fastify/SKILL.md",
+      "skillFolderHash": "1e536270ef5a5b696926e63d5f3c16324ebc5b0a",
+      "installedAt": "2026-03-22T18:26:05.291Z",
+      "updatedAt": "2026-03-22T18:26:05.291Z"
+    },
+    "init": {
+      "source": "mcollina/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/mcollina/skills.git",
+      "skillPath": "skills/init/SKILL.md",
+      "skillFolderHash": "54dd8f563ac76bad9965bfe19113988099f9fe94",
+      "installedAt": "2026-03-22T18:26:05.744Z",
+      "updatedAt": "2026-03-22T18:26:05.744Z"
+    },
+    "linting-neostandard-eslint9": {
+      "source": "mcollina/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/mcollina/skills.git",
+      "skillPath": "skills/linting-neostandard-eslint9/SKILL.md",
+      "skillFolderHash": "531365946a11c66a5598063f27643662fc5cce27",
+      "installedAt": "2026-03-22T18:26:06.123Z",
+      "updatedAt": "2026-03-22T18:26:06.123Z"
+    },
+    "node": {
+      "source": "mcollina/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/mcollina/skills.git",
+      "skillPath": "skills/node/SKILL.md",
+      "skillFolderHash": "359e8c0e1843122275c113174cd6459967d3cb4f",
+      "installedAt": "2026-03-22T18:26:06.552Z",
+      "updatedAt": "2026-03-22T18:26:06.552Z"
+    },
+    "oauth": {
+      "source": "mcollina/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/mcollina/skills.git",
+      "skillPath": "skills/oauth/SKILL.md",
+      "skillFolderHash": "a7fa08758dffad5f6388e5bc8e21d9f030d36875",
+      "installedAt": "2026-03-22T18:26:06.884Z",
+      "updatedAt": "2026-03-22T18:26:06.884Z"
+    },
+    "octocat": {
+      "source": "mcollina/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/mcollina/skills.git",
+      "skillPath": "skills/octocat/SKILL.md",
+      "skillFolderHash": "fe88d82fb60185ec4da3f7d857273e1ebc814af8",
+      "installedAt": "2026-03-22T18:26:07.300Z",
+      "updatedAt": "2026-03-22T18:26:07.300Z"
+    },
+    "skill-optimizer": {
+      "source": "mcollina/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/mcollina/skills.git",
+      "skillPath": "skills/skill-optimizer/SKILL.md",
+      "skillFolderHash": "f364a6308b43f83c8979542ab527220239761c66",
+      "installedAt": "2026-03-22T18:26:07.705Z",
+      "updatedAt": "2026-03-22T18:26:07.705Z"
+    },
+    "typescript-magician": {
+      "source": "mcollina/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/mcollina/skills.git",
+      "skillPath": "skills/typescript-magician/SKILL.md",
+      "skillFolderHash": "5f12eb5bb17ab9d8645a0f5ac6572d8d444e7c0a",
+      "installedAt": "2026-03-22T18:26:08.116Z",
+      "updatedAt": "2026-03-22T18:26:08.116Z"
+    },
+    "snipgrapher": {
+      "source": "mcollina/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/mcollina/skills.git",
+      "skillPath": "skills/snipgrapher/SKILL.md",
+      "skillFolderHash": "a8227bb0e8a049bf5dddc8ffbdc262ae9a9de166",
+      "installedAt": "2026-03-22T18:26:08.447Z",
+      "updatedAt": "2026-03-22T18:26:08.447Z"
+    },
+    "nodejs-core": {
+      "source": "mcollina/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/mcollina/skills.git",
+      "skillPath": "skills/nodejs-core/SKILL.md",
+      "skillFolderHash": "05f65900c45d0899ada531985347cb66ca09e1b3",
+      "installedAt": "2026-03-22T18:26:08.756Z",
+      "updatedAt": "2026-03-22T18:26:08.756Z"
+    },
+    "grill-me": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/mattpocock/skills.git",
+      "skillPath": "skills/productivity/grill-me/SKILL.md",
+      "skillFolderHash": "8320e7b87f7b208f50ce165b1dd43d1e93c8e801",
+      "pluginName": "mattpocock-skills",
+      "installedAt": "2026-06-23T21:43:05.838Z",
+      "updatedAt": "2026-06-23T21:43:05.838Z"
+    },
+    "grill-with-docs": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/mattpocock/skills.git",
+      "skillPath": "skills/engineering/grill-with-docs/SKILL.md",
+      "skillFolderHash": "21adba95de7d93065d9fec725ddf37f871e01d05",
+      "pluginName": "mattpocock-skills",
+      "installedAt": "2026-06-23T21:43:05.841Z",
+      "updatedAt": "2026-06-23T21:43:05.841Z"
+    },
+    "grilling": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/mattpocock/skills.git",
+      "skillPath": "skills/productivity/grilling/SKILL.md",
+      "skillFolderHash": "ab318c66a36253e872b5d0bd271b3df8f6ef816f",
+      "pluginName": "mattpocock-skills",
+      "installedAt": "2026-06-23T21:43:05.842Z",
+      "updatedAt": "2026-06-23T21:43:05.842Z"
+    },
+    "handoff": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/mattpocock/skills.git",
+      "skillPath": "skills/productivity/handoff/SKILL.md",
+      "skillFolderHash": "aa82ffd61d7a3bda110060b4e24ec782b983cb8d",
+      "pluginName": "mattpocock-skills",
+      "installedAt": "2026-06-23T21:43:05.843Z",
+      "updatedAt": "2026-06-23T21:43:05.843Z"
+    },
+    "teach": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/mattpocock/skills.git",
+      "skillPath": "skills/productivity/teach/SKILL.md",
+      "skillFolderHash": "3b6a4245e2aaeacb308ba6175ab3e7f2e43b0c47",
+      "pluginName": "mattpocock-skills",
+      "installedAt": "2026-06-23T21:43:05.844Z",
+      "updatedAt": "2026-06-23T21:43:05.844Z"
+    },
+    "decision-mapping": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/mattpocock/skills.git",
+      "skillPath": "skills/in-progress/decision-mapping/SKILL.md",
+      "skillFolderHash": "f5f8c3c31a79874b4ff289182d022697d0be3a6d",
+      "installedAt": "2026-06-23T21:43:05.845Z",
+      "updatedAt": "2026-06-23T21:43:05.845Z"
+    },
+    "writing-shape": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/mattpocock/skills.git",
+      "skillPath": "skills/in-progress/writing-shape/SKILL.md",
+      "skillFolderHash": "3da82ab342a9fef004368cd48a9aa80ac1dd7b29",
+      "installedAt": "2026-06-23T21:43:05.845Z",
+      "updatedAt": "2026-06-23T21:43:05.845Z"
+    },
+    "writing-fragments": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/mattpocock/skills.git",
+      "skillPath": "skills/in-progress/writing-fragments/SKILL.md",
+      "skillFolderHash": "d12fe507a3226039cfb74894ff67411051aef974",
+      "installedAt": "2026-06-23T21:43:05.846Z",
+      "updatedAt": "2026-06-23T21:43:05.846Z"
+    },
+    "herdr": {
+      "source": "ogulcancelik/herdr",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/ogulcancelik/herdr.git",
+      "skillPath": "SKILL.md",
+      "skillFolderHash": "045f506ec8a333cde84718304a7d21bcdb93a1fc",
+      "installedAt": "2026-07-03T18:29:10.948Z",
+      "updatedAt": "2026-07-03T18:29:10.948Z"
+    }
+  },
+  "dismissed": {
+    "findSkillsPrompt": true
+  },
+  "lastSelectedAgents": [
+    "amp",
+    "antigravity",
+    "antigravity-cli",
+    "cline",
+    "codex",
+    "cursor",
+    "deepagents",
+    "gemini-cli",
+    "github-copilot",
+    "kimi-code-cli",
+    "opencode",
+    "warp",
+    "zed",
+    "claude-code"
+  ]
+}

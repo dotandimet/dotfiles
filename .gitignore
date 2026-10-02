@@ -1,3 +1,25 @@
 config/lazyvim/lazy-lock.json
 /config/herdr/*
 !/config/herdr/config.toml
+
+# Agent configs: track only reviewed config, never agent runtime data.
+/config/pi/*
+!/config/pi/agent/
+/config/pi/agent/*
+!/config/pi/agent/settings.json
+!/config/pi/agent/mcp.json
+!/config/pi/agent/mcp-adapter.json
+!/config/pi/agent/extensions/
+/config/pi/agent/extensions/*
+!/config/pi/agent/extensions/herdr-agent-state.ts
+!/config/pi/agent/extensions/relative-file-links.ts
+/config/agents/*
+!/config/agents/.skill-lock.json
+!/config/agents/skills/
+
+/config/pi/**/.DS_Store
+/config/pi/**/node_modules/
+/config/pi/**/__pycache__/
+/config/agents/**/.DS_Store
+/config/agents/**/node_modules/
+/config/agents/**/__pycache__/

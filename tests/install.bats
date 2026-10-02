@@ -17,7 +17,9 @@ setup() {
   touch "$TEST_CONF_DIR/inputrc"
   mkdir -p "$TEST_CONF_DIR/nvim"
   touch "$TEST_CONF_DIR/nvim/init.lua"
-
+  mkdir -p "$TEST_CONF_DIR/pi/agent" "$TEST_CONF_DIR/agents/skills/example"
+  printf '{}\n' >"$TEST_CONF_DIR/pi/agent/settings.json"
+  touch "$TEST_CONF_DIR/agents/skills/example/SKILL.md"
 }
 
 teardown() {
@@ -102,6 +104,54 @@ _run_install_with_test_scripts() {
   [ "$status" -eq 0 ]
   [ -L "$HOME/.inputrc" ]
   [ "$(readlink "$HOME/.inputrc")" = "$TEST_CONF_DIR/inputrc" ]
+}
+
+# --- home-directory agent config symlinks ---
+
+@test "pi config is symlinked to ~/.pi, not ~/.config/pi" {
+  run _run_install
+  [ "$status" -eq 0 ]
+  [ "$(readlink "$HOME/.pi")" = "$TEST_CONF_DIR/pi" ]
+  [ -f "$HOME/.pi/agent/settings.json" ]
+  [ ! -e "$XDG_CONFIG_HOME/pi" ]
+  [ ! -L "$XDG_CONFIG_HOME/pi" ]
+}
+
+@test "agents config is symlinked to ~/.agents, not ~/.config/agents" {
+  run _run_install
+  [ "$status" -eq 0 ]
+  [ "$(readlink "$HOME/.agents")" = "$TEST_CONF_DIR/agents" ]
+  [ -f "$HOME/.agents/skills/example/SKILL.md" ]
+  [ ! -e "$XDG_CONFIG_HOME/agents" ]
+  [ ! -L "$XDG_CONFIG_HOME/agents" ]
+}
+
+@test "agent configs remain under HOME with a custom XDG_CONFIG_HOME" {
+  export XDG_CONFIG_HOME="$TEST_DIR/custom-config"
+  run _run_install
+  [ "$status" -eq 0 ]
+  for name in pi agents; do
+    [ "$(readlink "$HOME/.$name")" = "$TEST_CONF_DIR/$name" ]
+    [ ! -e "$XDG_CONFIG_HOME/$name" ]
+    [ ! -L "$XDG_CONFIG_HOME/$name" ]
+  done
+}
+
+@test "existing agent directories are backed up without copying runtime state into configs" {
+  for name in pi agents; do
+    mkdir -p "$HOME/.$name"
+    printf 'local state\n' >"$HOME/.$name/runtime.txt"
+  done
+  run _run_install
+  [ "$status" -eq 0 ]
+  run _run_install
+  [ "$status" -eq 0 ]
+  for name in pi agents; do
+    [ "$(readlink "$HOME/.$name")" = "$TEST_CONF_DIR/$name" ]
+    grep -qx 'local state' "$HOME/.${name}_bak/runtime.txt"
+    [ ! -e "$TEST_CONF_DIR/$name/runtime.txt" ]
+    [ ! -e "$HOME/.${name}_bak_bak" ]
+  done
 }
 
 # --- XDG config symlinks ---

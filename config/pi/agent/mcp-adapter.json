@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "xcode": {
+      "command": "xcrun",
+      "args": [
+        "mcpbridge"
+      ],
+      "directTools": true
+    },
+    "Haaretz": {
+      "url": "https://raily.haaretz.co.il/mcp",
+      "auth": "oauth",
+      "oauth": {
+        "clientName": "Pi Coding Agent"
+      },
+      "lifecycle": "lazy"
+    }
+  }
+}

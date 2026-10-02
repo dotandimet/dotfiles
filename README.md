@@ -96,8 +96,32 @@ The repository follows XDG-style conventions:
 
 - Root dotfiles such as `.bashrc`, `.bash_profile`, `.vimrc`, and `.tmux.conf`
   are linked into `~/`
-- `config/*/` directories are linked into `~/.config/`
+- `config/*/` directories are linked into `~/.config/`, except home-directory
+  configs such as `config/pi/` and `config/agents/`, linked to `~/.pi` and `~/.agents`
 - `bin/` scripts are linked into `~/.local/bin/`
+
+### Agent configurations
+
+`install.sh` explicitly maps `config/pi/` to `~/.pi` and `config/agents/` to
+`~/.agents`, following the same home-directory convention as `config/bashrc`.
+
+- `config/pi/agent/`: settings (including package declarations), MCP configuration,
+  and standalone extensions. `mcp-adapter.json` preserves the legacy adapter
+  configuration; the current package list does not include that adapter.
+- `config/agents/`: shared skills with their supporting files and `.skill-lock.json`
+  source metadata.
+
+Only selected configuration files were imported. Credentials, OAuth data,
+sessions, trust decisions, caches, installed packages, logs, and temporary files
+are not tracked. Directory symlinks still let applications write runtime files
+into the repository tree; ignore rules keep them out of Git, not off disk.
+Avoid `git clean -fdx`, which would delete ignored runtime data.
+
+The installer backs up existing directories to `~/.pi_bak` and `~/.agents_bak`;
+it does not merge their credentials or state into the new links. Pi packages can
+be restored from the settings declarations with `pi update --extensions` after
+the config is deployed. The Herdr integration extension is an imported snapshot
+managed by Herdr.
 
 ### Neovim
 
