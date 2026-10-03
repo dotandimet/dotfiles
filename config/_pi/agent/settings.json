@@ -4,7 +4,10 @@
   "defaultModel": "gpt-6-astra",
   "hideThinkingBlock": false,
   "defaultThinkingLevel": "high",
-  "packages": ["npm:@nonplanarslicer/pi-save-output", "npm:@ogulcancelik/pi-herdr"],
+  "packages": [
+    "npm:@nonplanarslicer/pi-save-output",
+    "npm:@ogulcancelik/pi-herdr"
+  ],
   "collapseChangelog": true,
   "quietStartup": false,
   "enableSkillCommands": true,
@@ -15,11 +18,13 @@
     "openrouter/z-ai/glm-5.3-flash",
     "openrouter/google/gemini-3.8-flash",
     "anthropic/claude-opus-5-5",
-    "openrouter/deepseek/deepseek-v4.1-flash"
+    "openrouter/deepseek/deepseek-v4.1-flash",
+    "openai-codex/gpt-6-astra",
+    "openai-codex/gpt-6-luna",
+    "openai-codex/gpt-6.1-sol"
   ],
   "tuiMode": "fullscreen",
   "terminal": {
     "showTerminalProgress": true
   }
 }
-
