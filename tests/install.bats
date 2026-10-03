@@ -9,33 +9,33 @@ setup() {
   export XDG_CONFIG_HOME="$HOME/.config"
   mkdir -p "$HOME"
 
-  # Fake config source dir with sample files
   TEST_CONF_DIR="$TEST_DIR/config"
-  mkdir -p "$TEST_CONF_DIR"
-  touch "$TEST_CONF_DIR/bashrc"
-  touch "$TEST_CONF_DIR/bash_profile"
-  touch "$TEST_CONF_DIR/inputrc"
-  mkdir -p "$TEST_CONF_DIR/nvim"
-  touch "$TEST_CONF_DIR/nvim/init.lua"
-  mkdir -p "$TEST_CONF_DIR/pi/agent" "$TEST_CONF_DIR/agents/skills/example"
-  printf '{}\n' >"$TEST_CONF_DIR/pi/agent/settings.json"
-  touch "$TEST_CONF_DIR/agents/skills/example/SKILL.md"
+  mkdir -p "$TEST_CONF_DIR/nvim" "$TEST_CONF_DIR/tmux" \
+    "$TEST_CONF_DIR/_pi/agent" "$TEST_CONF_DIR/_agents/skills/example"
+  touch "$TEST_CONF_DIR/_bashrc" "$TEST_CONF_DIR/_bash_profile" "$TEST_CONF_DIR/_inputrc"
+  touch "$TEST_CONF_DIR/nvim/init.lua" "$TEST_CONF_DIR/tmux/tmux.conf"
+  printf '{}\n' >"$TEST_CONF_DIR/_pi/agent/settings.json"
+  touch "$TEST_CONF_DIR/_agents/skills/example/SKILL.md"
+  git -C "$TEST_DIR" init -q
+  git -C "$TEST_DIR" add config
 }
 
 teardown() {
   rm -rf "$TEST_DIR"
 }
 
-# Source install.sh without running it, then invoke only the symlink logic.
-# This avoids exercising the software-installation step (curl/mise/brew),
-# which is covered separately by tests/docker_test_mac.sh.
+# Exercise only symlink installation, without curl/mise/brew.
 _run_install() {
   # shellcheck source=/dev/null
   source "$DOTFILES_DIR/install.sh"
   install_links "$TEST_CONF_DIR"
 }
 
-# --- invalid source directories ---
+_run_install_with_test_scripts() {
+  source "$DOTFILES_DIR/install.sh"
+  SCRIPT_DIR="$TEST_DIR"
+  install_links "$TEST_CONF_DIR"
+}
 
 @test "missing config directory fails without creating a literal wildcard link" {
   rm -rf "$TEST_CONF_DIR"
@@ -54,10 +54,11 @@ _run_install() {
   [ ! -L "$XDG_CONFIG_HOME/*" ]
 }
 
-_run_install_with_test_scripts() {
-  source "$DOTFILES_DIR/install.sh"
-  SCRIPT_DIR="$TEST_DIR"
-  install_links "$TEST_CONF_DIR"
+@test "config source must be in a git repository" {
+  rm -rf "$TEST_DIR/.git"
+  run _run_install
+  [ "$status" -ne 0 ]
+  [ ! -L "$HOME/.bashrc" ]
 }
 
 @test "missing scripts directory fails without creating a literal wildcard link" {
@@ -76,154 +77,170 @@ _run_install_with_test_scripts() {
 }
 
 @test "config directory paths containing spaces are supported" {
-  mv "$TEST_CONF_DIR" "$TEST_DIR/config with spaces"
+  git -C "$TEST_DIR" mv config 'config with spaces'
   TEST_CONF_DIR="$TEST_DIR/config with spaces"
   run _run_install
   [ "$status" -eq 0 ]
-  [ "$(readlink "$HOME/.bashrc")" = "$TEST_CONF_DIR/bashrc" ]
+  [ "$(readlink "$HOME/.bashrc")" = "$TEST_CONF_DIR/_bashrc" ]
 }
 
-# --- dot-file symlinks (bashrc, bash_profile, inputrc) ---
-
-@test "bashrc is symlinked to ~/.bashrc" {
+@test "underscore-prefixed files are symlinked under HOME" {
   run _run_install
   [ "$status" -eq 0 ]
-  [ -L "$HOME/.bashrc" ]
-  [ "$(readlink "$HOME/.bashrc")" = "$TEST_CONF_DIR/bashrc" ]
+  for name in bashrc bash_profile inputrc; do
+    [ "$(readlink "$HOME/.$name")" = "$TEST_CONF_DIR/_$name" ]
+    [ ! -e "$XDG_CONFIG_HOME/_$name" ]
+  done
 }
 
-@test "bash_profile is symlinked to ~/.bash_profile" {
+@test "agent files are linked inside real HOME directories" {
   run _run_install
   [ "$status" -eq 0 ]
-  [ -L "$HOME/.bash_profile" ]
-  [ "$(readlink "$HOME/.bash_profile")" = "$TEST_CONF_DIR/bash_profile" ]
+  [ "$(readlink "$HOME/.pi/agent/settings.json")" = "$TEST_CONF_DIR/_pi/agent/settings.json" ]
+  [ "$(readlink "$HOME/.agents/skills/example/SKILL.md")" = "$TEST_CONF_DIR/_agents/skills/example/SKILL.md" ]
+  for name in pi agents; do
+    [ -d "$HOME/.$name" ]
+    [ ! -L "$HOME/.$name" ]
+    [ ! -e "$XDG_CONFIG_HOME/_$name" ]
+    [ ! -e "$XDG_CONFIG_HOME/$name" ]
+  done
+  [ ! -L "$HOME/.pi/agent" ]
+  [ ! -L "$HOME/.agents/skills/example" ]
 }
 
-@test "inputrc is symlinked to ~/.inputrc" {
-  run _run_install
-  [ "$status" -eq 0 ]
-  [ -L "$HOME/.inputrc" ]
-  [ "$(readlink "$HOME/.inputrc")" = "$TEST_CONF_DIR/inputrc" ]
-}
-
-# --- home-directory agent config symlinks ---
-
-@test "pi config is symlinked to ~/.pi, not ~/.config/pi" {
-  run _run_install
-  [ "$status" -eq 0 ]
-  [ "$(readlink "$HOME/.pi")" = "$TEST_CONF_DIR/pi" ]
-  [ -f "$HOME/.pi/agent/settings.json" ]
-  [ ! -e "$XDG_CONFIG_HOME/pi" ]
-  [ ! -L "$XDG_CONFIG_HOME/pi" ]
-}
-
-@test "agents config is symlinked to ~/.agents, not ~/.config/agents" {
-  run _run_install
-  [ "$status" -eq 0 ]
-  [ "$(readlink "$HOME/.agents")" = "$TEST_CONF_DIR/agents" ]
-  [ -f "$HOME/.agents/skills/example/SKILL.md" ]
-  [ ! -e "$XDG_CONFIG_HOME/agents" ]
-  [ ! -L "$XDG_CONFIG_HOME/agents" ]
-}
-
-@test "agent configs remain under HOME with a custom XDG_CONFIG_HOME" {
+@test "custom XDG_CONFIG_HOME applies only to non-underscore paths" {
   export XDG_CONFIG_HOME="$TEST_DIR/custom-config"
   run _run_install
   [ "$status" -eq 0 ]
-  for name in pi agents; do
-    [ "$(readlink "$HOME/.$name")" = "$TEST_CONF_DIR/$name" ]
-    [ ! -e "$XDG_CONFIG_HOME/$name" ]
-    [ ! -L "$XDG_CONFIG_HOME/$name" ]
-  done
+  [ "$(readlink "$XDG_CONFIG_HOME/nvim/init.lua")" = "$TEST_CONF_DIR/nvim/init.lua" ]
+  [ "$(readlink "$HOME/.pi/agent/settings.json")" = "$TEST_CONF_DIR/_pi/agent/settings.json" ]
+  [ ! -e "$XDG_CONFIG_HOME/_pi" ]
 }
 
-@test "existing agent directories are backed up without copying runtime state into configs" {
-  for name in pi agents; do
-    mkdir -p "$HOME/.$name"
-    printf 'local state\n' >"$HOME/.$name/runtime.txt"
-  done
+@test "existing directories and runtime state are left in place" {
+  mkdir -p "$HOME/.pi/agent/sessions" "$XDG_CONFIG_HOME/nvim"
+  printf 'session\n' >"$HOME/.pi/agent/sessions/local.json"
+  printf 'local state\n' >"$XDG_CONFIG_HOME/nvim/runtime.txt"
   run _run_install
   [ "$status" -eq 0 ]
   run _run_install
   [ "$status" -eq 0 ]
-  for name in pi agents; do
-    [ "$(readlink "$HOME/.$name")" = "$TEST_CONF_DIR/$name" ]
-    grep -qx 'local state' "$HOME/.${name}_bak/runtime.txt"
-    [ ! -e "$TEST_CONF_DIR/$name/runtime.txt" ]
-    [ ! -e "$HOME/.${name}_bak_bak" ]
-  done
+  grep -qx session "$HOME/.pi/agent/sessions/local.json"
+  grep -qx 'local state' "$XDG_CONFIG_HOME/nvim/runtime.txt"
+  [ ! -e "$TEST_CONF_DIR/_pi/agent/sessions" ]
+  [ ! -e "$TEST_CONF_DIR/nvim/runtime.txt" ]
+  [ ! -e "$HOME/.pi_bak" ]
 }
 
-# --- XDG config symlinks ---
-
-@test "nvim config directory is symlinked to ~/.config/nvim" {
+@test "XDG files are linked individually, not their directories" {
   run _run_install
   [ "$status" -eq 0 ]
-  [ -L "$HOME/.config/nvim" ]
-  [ "$(readlink "$HOME/.config/nvim")" = "$TEST_CONF_DIR/nvim" ]
+  [ ! -L "$XDG_CONFIG_HOME/nvim" ]
+  [ "$(readlink "$XDG_CONFIG_HOME/nvim/init.lua")" = "$TEST_CONF_DIR/nvim/init.lua" ]
+  [ ! -L "$XDG_CONFIG_HOME/tmux" ]
+  [ "$(readlink "$XDG_CONFIG_HOME/tmux/tmux.conf")" = "$TEST_CONF_DIR/tmux/tmux.conf" ]
 }
 
-@test "~/.config directory is created if it does not exist" {
-  rm -rf "$HOME/.config"
+@test "only tracked files are linked, including hidden files" {
+  touch "$TEST_CONF_DIR/nvim/untracked.log" "$TEST_CONF_DIR/nvim/ignored.log"
+  printf 'ignored.log\n' >"$TEST_CONF_DIR/.gitignore"
+  touch "$TEST_CONF_DIR/nvim/.tracked"
+  git -C "$TEST_DIR" add config/.gitignore config/nvim/.tracked
   run _run_install
   [ "$status" -eq 0 ]
-  [ -d "$HOME/.config" ]
+  [ "$(readlink "$XDG_CONFIG_HOME/nvim/.tracked")" = "$TEST_CONF_DIR/nvim/.tracked" ]
+  [ ! -e "$XDG_CONFIG_HOME/nvim/untracked.log" ]
+  [ ! -e "$XDG_CONFIG_HOME/nvim/ignored.log" ]
 }
 
-# --- script symlinks ---
-
-@test "scripts from bin/ are symlinked into ~/.local/bin/" {
+@test "filenames with spaces and newlines are supported and nested underscores are preserved" {
+  local name=$'_nested/file with space\nand newline'
+  mkdir -p "$TEST_CONF_DIR/nvim/_nested"
+  touch "$TEST_CONF_DIR/nvim/$name"
+  git -C "$TEST_DIR" add config
   run _run_install
   [ "$status" -eq 0 ]
+  [ "$(readlink "$XDG_CONFIG_HOME/nvim/$name")" = "$TEST_CONF_DIR/nvim/$name" ]
+}
+
+@test "underscore convention works for arbitrary names without a hardcoded list" {
+  mkdir -p "$TEST_CONF_DIR/_example/_nested"
+  touch "$TEST_CONF_DIR/_example/_nested/settings"
+  git -C "$TEST_DIR" add config
+  run _run_install
+  [ "$status" -eq 0 ]
+  [ "$(readlink "$HOME/.example/_nested/settings")" = "$TEST_CONF_DIR/_example/_nested/settings" ]
+}
+
+@test "tracked files deleted from the worktree are skipped" {
+  rm "$TEST_CONF_DIR/nvim/init.lua"
+  run _run_install
+  [ "$status" -eq 0 ]
+  [ ! -L "$XDG_CONFIG_HOME/nvim/init.lua" ]
+}
+
+@test "tracked file symlinks are supported but directory symlinks are not installed" {
+  ln -s init.lua "$TEST_CONF_DIR/nvim/alias.lua"
+  ln -s missing.lua "$TEST_CONF_DIR/nvim/dangling.lua"
+  ln -s nvim "$TEST_CONF_DIR/directory-link"
+  git -C "$TEST_DIR" add config
+  run _run_install
+  [ "$status" -eq 0 ]
+  run _run_install
+  [ "$status" -eq 0 ]
+  [ "$(readlink "$XDG_CONFIG_HOME/nvim/alias.lua")" = "$TEST_CONF_DIR/nvim/alias.lua" ]
+  [ "$(readlink "$XDG_CONFIG_HOME/nvim/dangling.lua")" = "$TEST_CONF_DIR/nvim/dangling.lua" ]
+  [ ! -L "$XDG_CONFIG_HOME/directory-link" ]
+  [ -z "$(find "$HOME" -name '*_bak')" ]
+}
+
+@test "legacy directory symlinks fail safely without modifying source files" {
+  ln -s "$TEST_CONF_DIR/_pi" "$HOME/.pi"
+  run _run_install
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"replace it with a real directory"* ]]
+  [ ! -L "$TEST_CONF_DIR/_pi/agent/settings.json" ]
+  [ ! -e "$TEST_CONF_DIR/_pi/agent/settings.json_bak" ]
+}
+
+@test "nested directory symlinks also fail safely" {
+  mkdir -p "$HOME/.pi"
+  ln -s "$TEST_CONF_DIR/_pi/agent" "$HOME/.pi/agent"
+  run _run_install
+  [ "$status" -ne 0 ]
+  [ ! -L "$TEST_CONF_DIR/_pi/agent/settings.json" ]
+}
+
+@test "scripts from bin are still symlinked into ~/.local/bin" {
+  run _run_install
+  [ "$status" -eq 0 ]
+  [ -d "$HOME/.local/bin" ]
   for script in "$DOTFILES_DIR"/bin/*; do
     name="$(basename "$script")"
-    [ -L "$HOME/.local/bin/$name" ]
     [ "$(readlink "$HOME/.local/bin/$name")" = "$script" ]
   done
 }
-
-@test "~/.local/bin is created if it does not exist" {
-  rm -rf "$HOME/.local/bin"
-  run _run_install
-  printf "Output:\n%s\n${output}\n"
-  tree "$HOME/.local/bin"
-  [ "$status" -eq 0 ]
-  [ -d "$HOME/.local/bin" ]
-}
-
-# --- backup behavior ---
 
 @test "existing regular file is backed up with _bak suffix" {
   echo "original content" >"$HOME/.bashrc"
   run _run_install
   [ "$status" -eq 0 ]
   [ -L "$HOME/.bashrc" ]
-  [ -f "$HOME/.bashrc_bak" ]
+  grep -qx 'original content' "$HOME/.bashrc_bak"
 }
 
 @test "wrong symlink is replaced and backed up" {
   ln -s /dev/null "$HOME/.bashrc"
   run _run_install
   [ "$status" -eq 0 ]
-  [ -L "$HOME/.bashrc" ]
-  [ "$(readlink "$HOME/.bashrc")" = "$TEST_CONF_DIR/bashrc" ]
-  [ -L "$HOME/.bashrc_bak" ]
+  [ "$(readlink "$HOME/.bashrc")" = "$TEST_CONF_DIR/_bashrc" ]
+  [ "$(readlink "$HOME/.bashrc_bak")" = /dev/null ]
 }
 
-# --- idempotency ---
-
-@test "running install twice does not error" {
+@test "running install twice does not create backups" {
   run _run_install
   [ "$status" -eq 0 ]
   run _run_install
   [ "$status" -eq 0 ]
-}
-
-@test "running install twice does not create extra _bak files" {
-  run _run_install
-  run _run_install
-  [ "$status" -eq 0 ]
-  # No _bak files should exist after a clean double-run
-  bak_count=$(find "$HOME" -name '*_bak' | wc -l)
-  [ "$bak_count" -eq 0 ]
+  [ -z "$(find "$HOME" -name '*_bak')" ]
 }

@@ -4,10 +4,7 @@
   "defaultModel": "gpt-6-astra",
   "hideThinkingBlock": false,
   "defaultThinkingLevel": "high",
-  "packages": [
-    "npm:@nonplanarslicer/pi-save-output",
-    "npm:@ogulcancelik/pi-herdr"
-  ],
+  "packages": ["npm:@nonplanarslicer/pi-save-output", "npm:@ogulcancelik/pi-herdr"],
   "collapseChangelog": true,
   "quietStartup": false,
   "enableSkillCommands": true,
@@ -23,6 +20,6 @@
   "tuiMode": "fullscreen",
   "terminal": {
     "showTerminalProgress": true
-  },
-  "fullscreenExitOutput": "transcript"
+  }
 }
+

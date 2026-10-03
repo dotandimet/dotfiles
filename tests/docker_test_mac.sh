@@ -13,7 +13,9 @@ BASE_DIR="${TEMP_DIR}/repo"
 git clone --depth 1 --no-local "$REPO_DIR" "$BASE_DIR"
 # Send nested files in one top-level archive: some container CLI versions
 # silently omit directory contents when transferring a build context.
-git -C "$BASE_DIR" archive --format=tar --output="${BASE_DIR}/dotfiles.tar" HEAD
+# Include .git from the clean clone: installation uses git ls-files.
+tar -C "$BASE_DIR" -cf "${TEMP_DIR}/dotfiles.tar" .
+mv "${TEMP_DIR}/dotfiles.tar" "${BASE_DIR}/dotfiles.tar"
 echo "$BASE_DIR"
 
 # check container system is up and running

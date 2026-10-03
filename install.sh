@@ -24,39 +24,56 @@ function install_macos_stuff() {
 function symlink_config_files {
   local CONF_DIR="$1"
   local TARGET_DIR="$2"
-  local CONFIG_FILES=("${CONF_DIR}"/*)
-  if [[ ! -e "${CONFIG_FILES[0]:-}" && ! -L "${CONFIG_FILES[0]:-}" ]]; then
+  local CONF SRC TARGET BASE PARENT
+  local CONFIG_FILES=()
+  if [[ ! -d "${CONF_DIR}" ]]; then
+    echo "No configuration files found in ${CONF_DIR}" >&2
+    return 1
+  fi
+  CONF_DIR="$(cd "${CONF_DIR}" && pwd)"
+  git -C "${CONF_DIR}" rev-parse --show-toplevel >/dev/null || return 1
+  while IFS= read -r -d '' CONF; do
+    # Skip tracked files deleted from the worktree and submodule directories.
+    if [[ ! -d "${CONF_DIR}/${CONF}" && ( -f "${CONF_DIR}/${CONF}" || -L "${CONF_DIR}/${CONF}" ) ]]; then
+      CONFIG_FILES+=("${CONF}")
+    fi
+  done < <(git -C "${CONF_DIR}" ls-files -z -- .)
+  if [[ ${#CONFIG_FILES[@]} -eq 0 ]]; then
     echo "No configuration files found in ${CONF_DIR}" >&2
     return 1
   fi
   for CONF in "${CONFIG_FILES[@]}"; do
-    CONF=$(basename "${CONF}")
     SRC="${CONF_DIR}/${CONF}"
-    TARGET=""
-    if [[ "${CONF}" == "bashrc" ||
-      "${CONF}" == "bash_profile" ||
-      "${CONF}" == "inputrc" ||
-      "${CONF}" == "vimrc" ||
-      "${CONF}" == "gemini" ||
-      "${CONF}" == "pi" ||
-      "${CONF}" == "agents" ||
-      "${CONF}" == "tmux.conf" ]] \
-      ; then
-      TARGET="${HOME}/.${CONF}"
+    # Only the leading underscore is replaced; nested names stay unchanged.
+    if [[ "${CONF}" == _* ]]; then
+      BASE="${HOME}"
+      TARGET="${BASE}/.${CONF#_}"
     else
-      TARGET="${TARGET_DIR}/${CONF}"
+      BASE="${TARGET_DIR}"
+      TARGET="${BASE}/${CONF}"
     fi
+    # Never follow an old directory link back into the source checkout.
+    PARENT="${TARGET%/*}"
+    while :; do
+      if [[ -L "${PARENT}" ]]; then
+        echo "${PARENT} is a directory symlink; replace it with a real directory before installing" >&2
+        return 1
+      fi
+      [[ "${PARENT}" == "${BASE}" || "${PARENT}" == / ]] && break
+      PARENT="$(dirname "${PARENT}")"
+    done
+    mkdir -p "${TARGET%/*}"
     if [[ -L "${TARGET}" ]]; then
       if [[ "$(readlink "${TARGET}")" != "${SRC}" ]]; then
         echo "${TARGET} is a symlink but not to ${SRC}, moving to ${TARGET}_bak"
         mv "${TARGET}" "${TARGET}_bak"
       fi
-    elif [[ -r "${TARGET}" ]]; then
+    elif [[ -e "${TARGET}" ]]; then
       echo "${TARGET} exists but not a link, moving to ${TARGET}_bak"
       mv "${TARGET}" "${TARGET}_bak"
     fi
-    # so now, $TARGET shouldn't exist unless it's Cool:
-    if [[ -n "${TARGET}" && ! -e "${TARGET}" ]]; then
+    # A correct link may itself point to a tracked symlink.
+    if [[ ! -e "${TARGET}" && ! -L "${TARGET}" ]]; then
       echo "Installing ${CONF} configuration"
       ln -s "${SRC}" "${TARGET}" && echo "Installed link in ${TARGET}"
     fi
