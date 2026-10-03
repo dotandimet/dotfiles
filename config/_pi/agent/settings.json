@@ -4,6 +4,7 @@
   "defaultModel": "gpt-6-astra",
   "hideThinkingBlock": false,
   "defaultThinkingLevel": "high",
+  "defaultTools": ["+codemode"],
   "packages": [
     "npm:@nonplanarslicer/pi-save-output",
     "npm:@ogulcancelik/pi-herdr"
