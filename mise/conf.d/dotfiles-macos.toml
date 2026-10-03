@@ -1,0 +1,11 @@
+# Explicit selectors keep Homebrew packages off Linux, even when these
+# fragments are loaded globally. mise installs into the Homebrew prefix.
+[bootstrap.packages]
+"brew:gawk" = { os = "macos" }
+"brew:bash-completion@2" = { os = "macos" }
+"brew:bash" = { os = "macos" }
+"brew:gnupg" = { os = "macos" }
+"brew:neovim" = { os = "macos" }
+"brew:tmux" = { os = "macos" }
+"brew-cask:font-comic-shanns-mono-nerd-font" = { os = "macos" }
+"brew-cask:ghostty" = { os = "macos" }

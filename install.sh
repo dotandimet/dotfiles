@@ -1,155 +1,23 @@
 #!/usr/bin/env bash
-
+# Compatibility entry point for Codespaces/Coder and machines without mise.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# install brew, brew software listed in the Brewfile,
-# and set bash as the default shell
-function install_macos_stuff() {
-  # brew and software installed with brew
-  if [[ ! -x /opt/homebrew/bin/brew ]]; then
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-  fi
-  eval "$(/opt/homebrew/bin/brew shellenv)"
-  brew bundle install --file=Brewfile
-
-  # Set Homebrew's bash as default shell
-  BREW_BASH="$(brew --prefix)/bin/bash"
-  grep -Fq "$BREW_BASH" /etc/shells || echo "${BREW_BASH}" | sudo tee -a /etc/shells
-  [[ "$SHELL" == "$BREW_BASH" ]] || chsh -s "${BREW_BASH}"
-}
-
-# Install symlinks for config files
-function symlink_config_files {
-  local CONF_DIR="$1"
-  local TARGET_DIR="$2"
-  local CONF SRC TARGET BASE PARENT
-  local CONFIG_FILES=()
-  if [[ ! -d "${CONF_DIR}" ]]; then
-    echo "No configuration files found in ${CONF_DIR}" >&2
-    return 1
-  fi
-  CONF_DIR="$(cd "${CONF_DIR}" && pwd)"
-  git -C "${CONF_DIR}" rev-parse --show-toplevel >/dev/null || return 1
-  while IFS= read -r -d '' CONF; do
-    # Skip tracked files deleted from the worktree and submodule directories.
-    if [[ ! -d "${CONF_DIR}/${CONF}" && ( -f "${CONF_DIR}/${CONF}" || -L "${CONF_DIR}/${CONF}" ) ]]; then
-      CONFIG_FILES+=("${CONF}")
-    fi
-  done < <(git -C "${CONF_DIR}" ls-files -z -- .)
-  if [[ ${#CONFIG_FILES[@]} -eq 0 ]]; then
-    echo "No configuration files found in ${CONF_DIR}" >&2
-    return 1
-  fi
-  for CONF in "${CONFIG_FILES[@]}"; do
-    SRC="${CONF_DIR}/${CONF}"
-    # Only the leading underscore is replaced; nested names stay unchanged.
-    if [[ "${CONF}" == _* ]]; then
-      BASE="${HOME}"
-      TARGET="${BASE}/.${CONF#_}"
-    else
-      BASE="${TARGET_DIR}"
-      TARGET="${BASE}/${CONF}"
-    fi
-    # Never follow an old directory link back into the source checkout.
-    PARENT="${TARGET%/*}"
-    while :; do
-      if [[ -L "${PARENT}" ]]; then
-        echo "${PARENT} is a directory symlink; replace it with a real directory before installing" >&2
-        return 1
-      fi
-      [[ "${PARENT}" == "${BASE}" || "${PARENT}" == / ]] && break
-      PARENT="$(dirname "${PARENT}")"
-    done
-    mkdir -p "${TARGET%/*}"
-    if [[ -L "${TARGET}" ]]; then
-      if [[ "$(readlink "${TARGET}")" != "${SRC}" ]]; then
-        echo "${TARGET} is a symlink but not to ${SRC}, moving to ${TARGET}_bak"
-        mv "${TARGET}" "${TARGET}_bak"
-      fi
-    elif [[ -e "${TARGET}" ]]; then
-      echo "${TARGET} exists but not a link, moving to ${TARGET}_bak"
-      mv "${TARGET}" "${TARGET}_bak"
-    fi
-    # A correct link may itself point to a tracked symlink.
-    if [[ ! -e "${TARGET}" && ! -L "${TARGET}" ]]; then
-      echo "Installing ${CONF} configuration"
-      ln -s "${SRC}" "${TARGET}" && echo "Installed link in ${TARGET}"
-    fi
-  done
-}
-
-function symlink_scripts {
-  SCRIPTS_DIR="${SCRIPT_DIR}/bin"
-  TARGET_SCRIPTS_DIR="${HOME}/.local/bin"
-  local SCRIPT_FILES=("${SCRIPTS_DIR}"/*)
-  if [[ ! -e "${SCRIPT_FILES[0]:-}" && ! -L "${SCRIPT_FILES[0]:-}" ]]; then
-    echo "No scripts found in ${SCRIPTS_DIR}" >&2
-    return 1
-  fi
-  [[ -d "${TARGET_SCRIPTS_DIR}" ]] || mkdir -p "${TARGET_SCRIPTS_DIR}"
-  for SCRIPT in "${SCRIPT_FILES[@]}"; do
-    SCRIPT=$(basename "${SCRIPT}")
-    SRC="${SCRIPTS_DIR}/${SCRIPT}"
-    TARGET="${TARGET_SCRIPTS_DIR}/${SCRIPT}"
-    if [[ -L "${TARGET}" ]]; then
-      if [[ "$(readlink "${TARGET}")" != "${SRC}" ]]; then
-        echo "${TARGET} is a symlink but not to ${SRC}, moving to ${TARGET}_bak"
-        mv "${TARGET}" "${TARGET}_bak"
-      fi
-    elif [[ -r "${TARGET}" ]]; then
-      echo "${TARGET} exists but not a link, moving to ${TARGET}_bak"
-      mv "${TARGET}" "${TARGET}_bak"
-    fi
-    # so now, $TARGET shouldn't exist unless it's Cool:
-    if [[ -n "${TARGET}" && ! -e "${TARGET}" ]]; then
-      echo "Installing script ${SCRIPT}"
-      ln -s "${SRC}" "${TARGET}" && echo "Installed link in ${TARGET}"
-    fi
-  done
-}
-
-# Install all symlinks (config files + scripts)
-function install_links {
-  # configs are in ./config, can be overwritten by first argument
-  local CONF_DIR=${1:-"${SCRIPT_DIR}/config"}
-  local TARGET_DIR=${XDG_CONFIG_HOME:-"${HOME}/.config"}
-  [[ -d "${TARGET_DIR}" ]] || mkdir -p "${TARGET_DIR}"
-
-  echo "Installing dotfiles from ${CONF_DIR}"
-  symlink_config_files "${CONF_DIR}" "${TARGET_DIR}"
-
-  symlink_scripts
-}
-
-# Install software (Homebrew on macOS, then mise + mise-managed tools)
-function install_software {
-  echo "Installing software"
-
-  if uname -a | grep -q Darwin; then
-    echo "Installing macos stuff"
-    install_macos_stuff
-  fi
-
-  if [[ -x ~/.local/bin/mise ]]; then
-    echo "mise package manager installed"
-  else
-    curl https://mise.run | sh
-  fi
-
-  echo "Installing mise software..."
-  eval "$(~/.local/bin/mise activate bash --shims)" # so any shims added are available in the installlation
-  ~/.local/bin/mise install
-}
-
-function main {
-  install_links "$@"
-  install_software
-  echo "DONE"
-}
-
-# Only run when executed directly, not when sourced (bash __main__ trick)
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-  main "$@"
+if command -v mise >/dev/null 2>&1; then
+  MISE="$(command -v mise)"
+elif [[ -x "$HOME/.local/bin/mise" ]]; then
+  MISE="$HOME/.local/bin/mise"
+else
+  # Download before executing: a failed transfer must not run a partial script.
+  installer="$(mktemp)"
+  trap 'rm -f "$installer"' EXIT
+  curl -fsSL https://mise.run -o "$installer"
+  sh "$installer"
+  rm -f "$installer"
+  trap - EXIT
+  MISE="$HOME/.local/bin/mise"
 fi
+
+"$MISE" trust "$SCRIPT_DIR/mise.toml"
+exec "$MISE" -C "$SCRIPT_DIR" bootstrap "$@"

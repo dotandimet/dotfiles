@@ -1,0 +1,5 @@
+# Linux installs stay in the user-owned mise data directory. Use prebuilt
+# releases, not the asdf tmux backend (which needs system build dependencies).
+[tools]
+"aqua:neovim/neovim" = { version = "0.12.5", os = ["linux"] }
+"aqua:tmux/tmux-builds" = { version = "3.7c", os = ["linux"] }

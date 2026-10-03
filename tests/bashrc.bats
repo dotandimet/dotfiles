@@ -1,8 +1,8 @@
 #!/usr/bin/env bats
-# Tests for config/bashrc
+# Tests for config/_bashrc
 
 DOTFILES_DIR="$(cd "$(dirname "$BATS_TEST_FILENAME")/.." && pwd)"
-BASHRC="$DOTFILES_DIR/config/bashrc"
+BASHRC="$DOTFILES_DIR/config/_bashrc"
 
 setup() {
   TEST_DIR="$(mktemp -d)"
@@ -53,6 +53,31 @@ _count_in_path() {
   local dir="$1"
   local path_str="$2"
   echo "$path_str" | tr ':' '\n' | grep -Fxc "$dir" || true
+}
+
+@test "sourcing twice preserves environment prompt commands without duplicating history hooks" {
+  run bash --norc --noprofile -c '
+    export PATH="$1"
+    PROMPT_COMMAND="environment_prompt"
+    source "$2" 2>/dev/null
+    source "$2" 2>/dev/null
+    [[ "$PROMPT_COMMAND" == "environment_prompt; history -a" ]]
+  ' bash "$MOCK_PATH" "$BASHRC"
+  [ "$status" -eq 0 ]
+}
+
+@test "sourcing preserves every element of array-valued PROMPT_COMMAND" {
+  run bash --norc --noprofile -c '
+    export PATH="$1"
+    PROMPT_COMMAND=("first_hook" "second_hook")
+    source "$2" 2>/dev/null
+    source "$2" 2>/dev/null
+    [[ "${PROMPT_COMMAND[0]}" == first_hook ]] &&
+    [[ "${PROMPT_COMMAND[1]}" == second_hook ]] &&
+    [[ "${PROMPT_COMMAND[2]}" == "history -a" ]] &&
+    [[ "${#PROMPT_COMMAND[@]}" -eq 3 ]]
+  ' bash "$MOCK_PATH" "$BASHRC"
+  [ "$status" -eq 0 ]
 }
 
 # --- PATH idempotency ---

@@ -1,8 +1,0 @@
-brew "awk"
-brew "bash-completion@2"
-brew "bash"
-brew "gnupg"
-brew "neovim"
-brew "tmux"
-cask "font-comic-shanns-mono-nerd-font"
-cask "ghostty"

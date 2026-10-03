@@ -13,7 +13,20 @@ export HISTFILE=~/.all_history
 # append to history file instead of overwriting
 shopt -s histappend
 # A new shell gets the history lines from all previous shells
-PROMPT_COMMAND='history -a'
+# Keep environment-provided prompt hooks, including Bash 5 arrays.
+if [[ "$(declare -p PROMPT_COMMAND 2>/dev/null)" == "declare -a "* ]]; then
+  case ";${PROMPT_COMMAND[*]};" in
+    *"history -a"*) ;;
+    *) PROMPT_COMMAND+=('history -a') ;;
+  esac
+else
+  # This branch is scalar; ShellCheck cannot infer the declare -p guard.
+  # shellcheck disable=SC2178,SC2128
+  case ";${PROMPT_COMMAND:-};" in
+    *"history -a"*) ;;
+    *) PROMPT_COMMAND="${PROMPT_COMMAND:+${PROMPT_COMMAND}; }history -a" ;;
+  esac
+fi
 # Don't put duplicate lines in the history.
 export HISTCONTROL=ignoredups
 
@@ -24,8 +37,15 @@ export HISTCONTROL=ignoredups
   "$PATH" != */Applications/Obsidian.app/Contents/MacOS* ]] &&
   export PATH="$PATH:/Applications/Obsidian.app/Contents/MacOS"
 
-# Personal bin/ directory
-export PATH="${HOME}/.local/bin:${PATH}"
+# Personal bin/ directory, exactly once even after re-sourcing this block.
+_dotfiles_path=":${PATH}:"
+while [[ "$_dotfiles_path" == *":${HOME}/.local/bin:"* ]]; do
+  _dotfiles_path="${_dotfiles_path/":${HOME}/.local/bin:"/:}"
+done
+_dotfiles_path="${_dotfiles_path#:}"
+_dotfiles_path="${_dotfiles_path%:}"
+export PATH="${HOME}/.local/bin${_dotfiles_path:+:${_dotfiles_path}}"
+unset _dotfiles_path
 
 alias ls="ls --color=auto"
 
@@ -55,8 +75,17 @@ alias np="new_project"
 alias psn="project-session"
 alias s="starship toggle line_break"
 
-[[ -r "/opt/homebrew/bin/brew" ]] && eval "$(/opt/homebrew/bin/brew shellenv)"
-eval "$(~/.local/bin/mise activate bash)"
+# mise bootstrap can install Homebrew bottles without a brew executable.
+if [[ "$OSTYPE" == darwin* ]]; then
+  for _brew_prefix in /opt/homebrew /usr/local; do
+    if [[ -x "$_brew_prefix/bin/bash" ]]; then
+      [[ ":$PATH:" == *":$_brew_prefix/bin:"* ]] || export PATH="$_brew_prefix/bin:$PATH"
+      break
+    fi
+  done
+  unset _brew_prefix
+fi
+command -v mise >/dev/null 2>&1 && eval "$(mise activate bash)"
 # bash completions
 [[ -d "/opt/homebrew/etc/bash_completion.d" ]] && export BASH_COMPLETION_COMPAT_DIR="/opt/homebrew/etc/bash_completion.d"
 [[ -r "/opt/homebrew/etc/profile.d/bash_completion.sh" ]] && . "/opt/homebrew/etc/profile.d/bash_completion.sh"
@@ -69,13 +98,16 @@ eval "$(fzf --bash)"
 . "${HOME}/.local/bin/fzf-git.sh" # git fzf integration
 
 # mise completion
-eval "$(~/.local/bin/mise completion bash)"
+command -v mise >/dev/null 2>&1 && eval "$(mise completion bash)"
 eval "$(starship init bash)"
 
-# flyline
-FLYLINE="$(mise bin-paths github:HalFrgrd/flyline)/$(mise bin-paths --bin-names github:HalFrgrd/flyline)"
-enable -f "$FLYLINE" flyline
-flyline create-prompt-widget mouse-mode --name MOUSE_MODE 'ON ' 'OFF' && RPS1=" MOUSE_MODE $RPS1"
-flyline set-agent-mode --system-prompt \
-  "Be concise. Answer with a JSON array of at most 3 items with objects containing: command and description. Command will be a Bash command." \
-  --trigger-prefix ': ' --command 'pi --thinking low --print'
+# flyline is optional while tools are still being installed.
+if command -v mise >/dev/null 2>&1; then
+  FLYLINE="$(mise bin-paths github:HalFrgrd/flyline)/$(mise bin-paths --bin-names github:HalFrgrd/flyline)"
+  if [[ -f "$FLYLINE" ]] && enable -f "$FLYLINE" flyline; then
+    flyline create-prompt-widget mouse-mode --name MOUSE_MODE 'ON ' 'OFF' && RPS1=" MOUSE_MODE $RPS1"
+    flyline set-agent-mode --system-prompt \
+      "Be concise. Answer with a JSON array of at most 3 items with objects containing: command and description. Command will be a Bash command." \
+      --trigger-prefix ': ' --command 'pi --thinking low --print'
+  fi
+fi

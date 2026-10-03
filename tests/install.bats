@@ -1,246 +1,226 @@
 #!/usr/bin/env bats
-# Tests for install.sh symlink behavior
+# Exercise native mise bootstrap in an isolated HOME, without installing tools.
 
 DOTFILES_DIR="$(cd "$(dirname "$BATS_TEST_FILENAME")/.." && pwd)"
 
 setup() {
+  MISE_BIN="$(command -v mise)"
   TEST_DIR="$(mktemp -d)"
   export HOME="$TEST_DIR/home"
   export XDG_CONFIG_HOME="$HOME/.config"
-  mkdir -p "$HOME"
-
-  TEST_CONF_DIR="$TEST_DIR/config"
-  mkdir -p "$TEST_CONF_DIR/nvim" "$TEST_CONF_DIR/tmux" \
-    "$TEST_CONF_DIR/_pi/agent" "$TEST_CONF_DIR/_agents/skills/example"
-  touch "$TEST_CONF_DIR/_bashrc" "$TEST_CONF_DIR/_bash_profile" "$TEST_CONF_DIR/_inputrc"
-  touch "$TEST_CONF_DIR/nvim/init.lua" "$TEST_CONF_DIR/tmux/tmux.conf"
-  printf '{}\n' >"$TEST_CONF_DIR/_pi/agent/settings.json"
-  touch "$TEST_CONF_DIR/_agents/skills/example/SKILL.md"
-  git -C "$TEST_DIR" init -q
-  git -C "$TEST_DIR" add config
+  REPO="$TEST_DIR/repo with spaces"
+  mkdir -p "$HOME" "$REPO/scripts" "$REPO/config/_pi/agent" \
+    "$REPO/config/_agents/skills/example" "$REPO/config/lazyvim/_nested" \
+    "$REPO/config/git" "$REPO/bin" "$REPO/mise/conf.d"
+  cp "$DOTFILES_DIR/mise.toml" "$REPO/"
+  cp "$DOTFILES_DIR/scripts/check-dotfiles.sh" "$REPO/scripts/"
+  cp "$DOTFILES_DIR"/mise/conf.d/*.toml "$REPO/mise/conf.d/"
+  printf 'export DOTFILES_TEST=first\n' >"$REPO/config/_bashrc"
+  printf 'source ~/.bashrc\n' >"$REPO/config/_bash_profile"
+  printf 'set show-all-if-ambiguous on\n' >"$REPO/config/_inputrc"
+  printf '[alias]\n  example = status\n' >"$REPO/config/git/config"
+  printf '*.log\n' >"$REPO/config/git/ignore"
+  printf 'return {}\n' >"$REPO/config/lazyvim/init.lua"
+  printf 'hidden\n' >"$REPO/config/lazyvim/.tracked"
+  printf 'nested\n' >"$REPO/config/lazyvim/_nested/config"
+  printf '{}\n' >"$REPO/config/_pi/agent/settings.json"
+  printf 'skill\n' >"$REPO/config/_agents/skills/example/SKILL.md"
+  printf '#!/bin/sh\necho test\n' >"$REPO/bin/example"
+  chmod +x "$REPO/bin/example"
+  git -C "$REPO" init -q
+  git -C "$REPO" add .
 }
 
 teardown() {
   rm -rf "$TEST_DIR"
 }
 
-# Exercise only symlink installation, without curl/mise/brew.
-_run_install() {
-  # shellcheck source=/dev/null
-  source "$DOTFILES_DIR/install.sh"
-  install_links "$TEST_CONF_DIR"
+# env -i prevents the calling shell's mise activation/cache from leaking in.
+_mise() {
+  env -i PATH="$PATH" HOME="$HOME" XDG_CONFIG_HOME="$XDG_CONFIG_HOME" \
+    MISE_DATA_DIR="$TEST_DIR/data" MISE_STATE_DIR="$TEST_DIR/state" \
+    MISE_CACHE_DIR="$TEST_DIR/cache" MISE_SYSTEM_CONFIG_DIR="$TEST_DIR/system" \
+    MISE_TRUSTED_CONFIG_PATHS="$TEST_DIR" MISE_YES=1 \
+    "$MISE_BIN" -C "$REPO" "$@"
 }
 
-_run_install_with_test_scripts() {
-  source "$DOTFILES_DIR/install.sh"
-  SCRIPT_DIR="$TEST_DIR"
-  install_links "$TEST_CONF_DIR"
+_apply() {
+  _mise bootstrap --only dotfiles --yes
 }
 
-@test "missing config directory fails without creating a literal wildcard link" {
-  rm -rf "$TEST_CONF_DIR"
-  run _run_install
-  [ "$status" -ne 0 ]
-  [[ "$output" == *"No configuration files found"* ]]
-  [ ! -L "$XDG_CONFIG_HOME/*" ]
-}
-
-@test "empty config directory fails without creating a literal wildcard link" {
-  rm -rf "$TEST_CONF_DIR"
-  mkdir -p "$TEST_CONF_DIR"
-  run _run_install
-  [ "$status" -ne 0 ]
-  [[ "$output" == *"No configuration files found"* ]]
-  [ ! -L "$XDG_CONFIG_HOME/*" ]
-}
-
-@test "config source must be in a git repository" {
-  rm -rf "$TEST_DIR/.git"
-  run _run_install
-  [ "$status" -ne 0 ]
-  [ ! -L "$HOME/.bashrc" ]
-}
-
-@test "missing scripts directory fails without creating a literal wildcard link" {
-  run _run_install_with_test_scripts
-  [ "$status" -ne 0 ]
-  [[ "$output" == *"No scripts found"* ]]
-  [ ! -L "$HOME/.local/bin/*" ]
-}
-
-@test "empty scripts directory fails without creating a literal wildcard link" {
-  mkdir -p "$TEST_DIR/bin"
-  run _run_install_with_test_scripts
-  [ "$status" -ne 0 ]
-  [[ "$output" == *"No scripts found"* ]]
-  [ ! -L "$HOME/.local/bin/*" ]
-}
-
-@test "config directory paths containing spaces are supported" {
-  git -C "$TEST_DIR" mv config 'config with spaces'
-  TEST_CONF_DIR="$TEST_DIR/config with spaces"
-  run _run_install
+@test "bootstrap copies configs and scripts into real files and directories" {
+  run _apply
   [ "$status" -eq 0 ]
-  [ "$(readlink "$HOME/.bashrc")" = "$TEST_CONF_DIR/_bashrc" ]
-}
-
-@test "underscore-prefixed files are symlinked under HOME" {
-  run _run_install
-  [ "$status" -eq 0 ]
-  for name in bashrc bash_profile inputrc; do
-    [ "$(readlink "$HOME/.$name")" = "$TEST_CONF_DIR/_$name" ]
-    [ ! -e "$XDG_CONFIG_HOME/_$name" ]
+  for pair in 'config/lazyvim/init.lua:.config/lazyvim/init.lua' \
+    'config/_pi/agent/settings.json:.pi/agent/settings.json' \
+    'config/_agents/skills/example/SKILL.md:.agents/skills/example/SKILL.md' \
+    'bin/example:.local/bin/example'; do
+    target="$HOME/${pair#*:}"
+    [ ! -L "$target" ]
+    cmp "$REPO/${pair%%:*}" "$target"
   done
-}
-
-@test "agent files are linked inside real HOME directories" {
-  run _run_install
-  [ "$status" -eq 0 ]
-  [ "$(readlink "$HOME/.pi/agent/settings.json")" = "$TEST_CONF_DIR/_pi/agent/settings.json" ]
-  [ "$(readlink "$HOME/.agents/skills/example/SKILL.md")" = "$TEST_CONF_DIR/_agents/skills/example/SKILL.md" ]
-  for name in pi agents; do
-    [ -d "$HOME/.$name" ]
-    [ ! -L "$HOME/.$name" ]
-    [ ! -e "$XDG_CONFIG_HOME/_$name" ]
-    [ ! -e "$XDG_CONFIG_HOME/$name" ]
-  done
-  [ ! -L "$HOME/.pi/agent" ]
-  [ ! -L "$HOME/.agents/skills/example" ]
-}
-
-@test "custom XDG_CONFIG_HOME applies only to non-underscore paths" {
-  export XDG_CONFIG_HOME="$TEST_DIR/custom-config"
-  run _run_install
-  [ "$status" -eq 0 ]
-  [ "$(readlink "$XDG_CONFIG_HOME/nvim/init.lua")" = "$TEST_CONF_DIR/nvim/init.lua" ]
-  [ "$(readlink "$HOME/.pi/agent/settings.json")" = "$TEST_CONF_DIR/_pi/agent/settings.json" ]
+  [ ! -L "$HOME/.pi" ]
+  [ ! -L "$XDG_CONFIG_HOME/lazyvim" ]
+  [ -x "$HOME/.local/bin/example" ]
   [ ! -e "$XDG_CONFIG_HOME/_pi" ]
 }
 
-@test "existing directories and runtime state are left in place" {
-  mkdir -p "$HOME/.pi/agent/sessions" "$XDG_CONFIG_HOME/nvim"
-  printf 'session\n' >"$HOME/.pi/agent/sessions/local.json"
-  printf 'local state\n' >"$XDG_CONFIG_HOME/nvim/runtime.txt"
-  run _run_install
-  [ "$status" -eq 0 ]
-  run _run_install
-  [ "$status" -eq 0 ]
-  grep -qx session "$HOME/.pi/agent/sessions/local.json"
-  grep -qx 'local state' "$XDG_CONFIG_HOME/nvim/runtime.txt"
-  [ ! -e "$TEST_CONF_DIR/_pi/agent/sessions" ]
-  [ ! -e "$TEST_CONF_DIR/nvim/runtime.txt" ]
-  [ ! -e "$HOME/.pi_bak" ]
-}
-
-@test "XDG files are linked individually, not their directories" {
-  run _run_install
-  [ "$status" -eq 0 ]
-  [ ! -L "$XDG_CONFIG_HOME/nvim" ]
-  [ "$(readlink "$XDG_CONFIG_HOME/nvim/init.lua")" = "$TEST_CONF_DIR/nvim/init.lua" ]
-  [ ! -L "$XDG_CONFIG_HOME/tmux" ]
-  [ "$(readlink "$XDG_CONFIG_HOME/tmux/tmux.conf")" = "$TEST_CONF_DIR/tmux/tmux.conf" ]
-}
-
-@test "only tracked files are linked, including hidden files" {
-  touch "$TEST_CONF_DIR/nvim/untracked.log" "$TEST_CONF_DIR/nvim/ignored.log"
-  printf 'ignored.log\n' >"$TEST_CONF_DIR/.gitignore"
-  touch "$TEST_CONF_DIR/nvim/.tracked"
-  git -C "$TEST_DIR" add config/.gitignore config/nvim/.tracked
-  run _run_install
-  [ "$status" -eq 0 ]
-  [ "$(readlink "$XDG_CONFIG_HOME/nvim/.tracked")" = "$TEST_CONF_DIR/nvim/.tracked" ]
-  [ ! -e "$XDG_CONFIG_HOME/nvim/untracked.log" ]
-  [ ! -e "$XDG_CONFIG_HOME/nvim/ignored.log" ]
-}
-
-@test "filenames with spaces and newlines are supported and nested underscores are preserved" {
-  local name=$'_nested/file with space\nand newline'
-  mkdir -p "$TEST_CONF_DIR/nvim/_nested"
-  touch "$TEST_CONF_DIR/nvim/$name"
-  git -C "$TEST_DIR" add config
-  run _run_install
-  [ "$status" -eq 0 ]
-  [ "$(readlink "$XDG_CONFIG_HOME/nvim/$name")" = "$TEST_CONF_DIR/nvim/$name" ]
-}
-
-@test "underscore convention works for arbitrary names without a hardcoded list" {
-  mkdir -p "$TEST_CONF_DIR/_example/_nested"
-  touch "$TEST_CONF_DIR/_example/_nested/settings"
-  git -C "$TEST_DIR" add config
-  run _run_install
-  [ "$status" -eq 0 ]
-  [ "$(readlink "$HOME/.example/_nested/settings")" = "$TEST_CONF_DIR/_example/_nested/settings" ]
-}
-
-@test "tracked files deleted from the worktree are skipped" {
-  rm "$TEST_CONF_DIR/nvim/init.lua"
-  run _run_install
-  [ "$status" -eq 0 ]
-  [ ! -L "$XDG_CONFIG_HOME/nvim/init.lua" ]
-}
-
-@test "tracked file symlinks are supported but directory symlinks are not installed" {
-  ln -s init.lua "$TEST_CONF_DIR/nvim/alias.lua"
-  ln -s missing.lua "$TEST_CONF_DIR/nvim/dangling.lua"
-  ln -s nvim "$TEST_CONF_DIR/directory-link"
-  git -C "$TEST_DIR" add config
-  run _run_install
-  [ "$status" -eq 0 ]
-  run _run_install
-  [ "$status" -eq 0 ]
-  [ "$(readlink "$XDG_CONFIG_HOME/nvim/alias.lua")" = "$TEST_CONF_DIR/nvim/alias.lua" ]
-  [ "$(readlink "$XDG_CONFIG_HOME/nvim/dangling.lua")" = "$TEST_CONF_DIR/nvim/dangling.lua" ]
-  [ ! -L "$XDG_CONFIG_HOME/directory-link" ]
-  [ -z "$(find "$HOME" -name '*_bak')" ]
-}
-
-@test "legacy directory symlinks fail safely without modifying source files" {
-  ln -s "$TEST_CONF_DIR/_pi" "$HOME/.pi"
-  run _run_install
-  [ "$status" -ne 0 ]
-  [[ "$output" == *"replace it with a real directory"* ]]
-  [ ! -L "$TEST_CONF_DIR/_pi/agent/settings.json" ]
-  [ ! -e "$TEST_CONF_DIR/_pi/agent/settings.json_bak" ]
-}
-
-@test "nested directory symlinks also fail safely" {
-  mkdir -p "$HOME/.pi"
-  ln -s "$TEST_CONF_DIR/_pi/agent" "$HOME/.pi/agent"
-  run _run_install
-  [ "$status" -ne 0 ]
-  [ ! -L "$TEST_CONF_DIR/_pi/agent/settings.json" ]
-}
-
-@test "scripts from bin are still symlinked into ~/.local/bin" {
-  run _run_install
-  [ "$status" -eq 0 ]
-  [ -d "$HOME/.local/bin" ]
-  for script in "$DOTFILES_DIR"/bin/*; do
-    name="$(basename "$script")"
-    [ "$(readlink "$HOME/.local/bin/$name")" = "$script" ]
+@test "block edits preserve existing shell, inputrc and Git customizations" {
+  mkdir -p "$XDG_CONFIG_HOME/git"
+  for target in .bashrc .bash_profile .inputrc .config/git/config; do
+    printf '# environment customization\n' >"$HOME/$target"
   done
+  run _apply
+  [ "$status" -eq 0 ]
+  for target in .bashrc .bash_profile .inputrc .config/git/config; do
+    grep -qx '# environment customization' "$HOME/$target"
+    [ "$(grep -c '^# >>> mise:dotfiles >>>' "$HOME/$target")" -eq 1 ]
+    [ "$(grep -c '^# <<< mise:dotfiles <<<' "$HOME/$target")" -eq 1 ]
+  done
+  grep -qx 'export DOTFILES_TEST=first' "$HOME/.bashrc"
 }
 
-@test "existing regular file is backed up with _bak suffix" {
-  echo "original content" >"$HOME/.bashrc"
-  run _run_install
+@test "reapply is idempotent and replaces only the fenced content" {
+  _apply
+  printf '# customization after block\n' >>"$HOME/.bashrc"
+  cp "$HOME/.bashrc" "$TEST_DIR/before"
+  run _apply
   [ "$status" -eq 0 ]
-  [ -L "$HOME/.bashrc" ]
-  grep -qx 'original content' "$HOME/.bashrc_bak"
+  cmp "$TEST_DIR/before" "$HOME/.bashrc"
+  printf 'export DOTFILES_TEST=second\n' >"$REPO/config/_bashrc"
+  run _apply
+  [ "$status" -eq 0 ]
+  grep -qx 'export DOTFILES_TEST=second' "$HOME/.bashrc"
+  ! grep -q 'DOTFILES_TEST=first' "$HOME/.bashrc"
+  grep -qx '# customization after block' "$HOME/.bashrc"
+  [ "$(grep -c '^# >>> mise:dotfiles >>>' "$HOME/.bashrc")" -eq 1 ]
 }
 
-@test "wrong symlink is replaced and backed up" {
-  ln -s /dev/null "$HOME/.bashrc"
-  run _run_install
+@test "only indexed files are copied, including hidden and nested underscore names" {
+  printf 'private\n' >"$REPO/config/_pi/agent/auth.json"
+  printf 'ignored.log\n' >"$REPO/.gitignore"
+  touch "$REPO/config/lazyvim/ignored.log" "$REPO/bin/untracked"
+  run _apply
   [ "$status" -eq 0 ]
-  [ "$(readlink "$HOME/.bashrc")" = "$TEST_CONF_DIR/_bashrc" ]
-  [ "$(readlink "$HOME/.bashrc_bak")" = /dev/null ]
+  [ -f "$XDG_CONFIG_HOME/lazyvim/.tracked" ]
+  [ -f "$XDG_CONFIG_HOME/lazyvim/_nested/config" ]
+  [ ! -e "$HOME/.pi/agent/auth.json" ]
+  [ ! -e "$XDG_CONFIG_HOME/lazyvim/ignored.log" ]
+  [ ! -e "$HOME/.local/bin/untracked" ]
 }
 
-@test "running install twice does not create backups" {
-  run _run_install
+@test "copies sync from source without deleting unrelated runtime state" {
+  _apply
+  mkdir -p "$HOME/.pi/agent/sessions"
+  printf 'credential\n' >"$HOME/.pi/agent/auth.json"
+  printf 'session\n' >"$HOME/.pi/agent/sessions/local.json"
+  printf 'local edit\n' >"$XDG_CONFIG_HOME/lazyvim/init.lua"
+  grep -qx 'return {}' "$REPO/config/lazyvim/init.lua"
+  printf 'return { updated = true }\n' >"$REPO/config/lazyvim/init.lua"
+  run _apply
   [ "$status" -eq 0 ]
-  run _run_install
+  cmp "$REPO/config/lazyvim/init.lua" "$XDG_CONFIG_HOME/lazyvim/init.lua"
+  grep -qx credential "$HOME/.pi/agent/auth.json"
+  grep -qx session "$HOME/.pi/agent/sessions/local.json"
+  [ ! -e "$REPO/config/_pi/agent/auth.json" ]
+}
+
+@test "deleted source copies are left for explicit cleanup" {
+  _apply
+  git -C "$REPO" rm -q -f config/lazyvim/init.lua
+  run _apply
   [ "$status" -eq 0 ]
-  [ -z "$(find "$HOME" -name '*_bak')" ]
+  [ -f "$XDG_CONFIG_HOME/lazyvim/init.lua" ]
+}
+
+@test "dry run does not write dotfiles" {
+  run _mise bootstrap --only dotfiles --dry-run
+  [ "$status" -eq 0 ]
+  [ ! -e "$HOME/.bashrc" ]
+  [ ! -e "$HOME/.pi" ]
+  [ ! -e "$HOME/.local/bin/example" ]
+  [[ "$output" != *"ignoring entry"* ]]
+}
+
+@test "native status converges after apply" {
+  _apply
+  run _mise dot status --missing
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"ignoring entry"* ]]
+}
+
+@test "legacy leaf links for copy entries become copies without changing the source" {
+  mkdir -p "$XDG_CONFIG_HOME/lazyvim"
+  ln -s "$REPO/config/lazyvim/init.lua" "$XDG_CONFIG_HOME/lazyvim/init.lua"
+  run _apply
+  [ "$status" -eq 0 ]
+  [ ! -L "$XDG_CONFIG_HOME/lazyvim/init.lua" ]
+  grep -qx 'return {}' "$REPO/config/lazyvim/init.lua"
+}
+
+@test "legacy directory links fail before any files are deployed" {
+  ln -s "$REPO/config/_pi" "$HOME/.pi"
+  run _apply
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"directory symlink"* ]]
+  [ ! -e "$HOME/.bashrc" ]
+  [ ! -e "$XDG_CONFIG_HOME/lazyvim" ]
+}
+
+@test "nested directory links fail before writes" {
+  mkdir -p "$HOME/.pi"
+  ln -s "$REPO/config/_pi/agent" "$HOME/.pi/agent"
+  run _apply
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"directory symlink"* ]]
+  [ ! -e "$HOME/.bashrc" ]
+}
+
+@test "block target symlinks fail without changing the linked source" {
+  ln -s "$REPO/config/_bashrc" "$HOME/.bashrc"
+  run _apply
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"is a symlink"* ]]
+  grep -qx 'export DOTFILES_TEST=first' "$REPO/config/_bashrc"
+  ! grep -q 'mise:dotfiles' "$REPO/config/_bashrc"
+  [ ! -e "$HOME/.pi" ]
+}
+
+@test "corrupt block markers are refused" {
+  printf '# >>> mise:dotfiles >>> managed by mise - do not edit between markers\nlocal content\n' >"$HOME/.bashrc"
+  cp "$HOME/.bashrc" "$TEST_DIR/before"
+  run _apply
+  [ "$status" -ne 0 ]
+  cmp "$TEST_DIR/before" "$HOME/.bashrc"
+}
+
+@test "custom XDG_CONFIG_HOME is rejected instead of silently deploying to the wrong path" {
+  export XDG_CONFIG_HOME="$TEST_DIR/custom-config"
+  run _apply
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"requires XDG_CONFIG_HOME"* ]]
+  [ ! -e "$HOME/.bashrc" ]
+}
+
+@test "tool fragments are available globally without replacing personal mise config" {
+  mkdir -p "$XDG_CONFIG_HOME/mise"
+  printf '[env]\nPERSONAL_SETTING = "keep"\n' >"$XDG_CONFIG_HOME/mise/config.toml"
+  _apply
+  for name in common linux macos; do
+    cmp "$REPO/mise/conf.d/dotfiles-$name.toml" "$XDG_CONFIG_HOME/mise/conf.d/dotfiles-$name.toml"
+  done
+  grep -q PERSONAL_SETTING "$XDG_CONFIG_HOME/mise/config.toml"
+  cd "$HOME"
+  REPO="$HOME"
+  run _mise config ls
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"dotfiles-common.toml"* ]]
+  [[ "$output" == *"dotfiles-linux.toml"* ]]
+  [[ "$output" == *"dotfiles-macos.toml"* ]]
+}
+
+@test "Linux manifest uses prebuilt user tools and macOS packages have explicit selectors" {
+  ! grep -q '^\[bootstrap.packages\]' "$REPO/mise/conf.d/dotfiles-linux.toml"
+  [ "$(grep -c 'os = \["linux"\]' "$REPO/mise/conf.d/dotfiles-linux.toml")" -eq 2 ]
+  [ "$(grep -c '^"brew.*os = "macos"' "$REPO/mise/conf.d/dotfiles-macos.toml")" -eq 8 ]
 }

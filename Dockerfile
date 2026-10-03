@@ -1,53 +1,27 @@
-# Use a recent Ubuntu image as the base
-FROM ubuntu:latest
-
-# Avoid interactive prompts during package installation
+# Build-time apt is only for the test image's base OS. The actual bootstrap
+# runs as an unprivileged user with no sudo and no compiler toolchain.
+FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    bash ca-certificates curl git libatomic1 locales tar gzip xz-utils unzip \
+    && rm -rf /var/lib/apt/lists/* \
+    && locale-gen en_US.UTF-8
 
-# Install essential dependencies for the dotfiles
-# This includes git, curl, build-essential for compiling, and sudo.
-# 'file' is often useful for debugging.
-# bison and curses are or installing tmux with mise, which builds it from source.
-RUN apt-get update && apt-get install -y \
-  build-essential \
-  curl \
-  file \
-  git \
-  sudo \
-  bash  \
-  bison libncurses-dev \
-  locales \
-  && rm -rf /var/lib/apt/lists/*
+RUN useradd --create-home --shell /bin/bash developer
+WORKDIR /home/developer/dotfiles
 
-# Generate locate to avoid errors in some scripts
-RUN locale-gen en_US.UTF-8 \
-  && update-locale LANG=en_US.UTF-8
-
-# Create a non-root user 'developer' with sudo privileges
-# and set a simple password ('password').
-RUN useradd --create-home --shell /bin/bash developer &&     adduser developer sudo &&     echo "developer:password" | chpasswd
-
-# Set the working directory to the user's home
-WORKDIR /home/developer
-
-# Normally copy the checkout; the macOS test supplies a tar archive to work
-# around container CLI versions that omit nested build-context files.
+# The macOS test supplies a tar to preserve nested build-context files.
 ARG DOTFILES_SOURCE=.
-ADD ${DOTFILES_SOURCE} .
-
-# Change the ownership of the copied files to the new user
-RUN chown -R developer:developer /home/developer
-
-# Switch to the non-root user
+ADD --chown=developer:developer ${DOTFILES_SOURCE} .
 USER developer
+ENV PATH="/home/developer/.local/bin:${PATH}"
 
-# Make the main installation script executable
-# and execute it
 RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
-  chmod +x install.sh && env MISE_MINIMUM_RELEASE_AGE=0s ./install.sh
+    MISE_MINIMUM_RELEASE_AGE=0s ./install.sh --yes \
+    && mise bootstrap --only dotfiles --yes \
+    && mise dot status --missing \
+    && mise exec -- nvim --version \
+    && mise exec -- tmux -V \
+    && mise run test
 
-# Set the default command to start a login shell.
-# This will ensure that shell profiles like .bash_profile are loaded.
 CMD ["/bin/bash", "-l"]
-
-

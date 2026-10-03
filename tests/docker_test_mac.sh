@@ -1,28 +1,38 @@
 #!/usr/bin/env bash
 set -euo pipefail
-set -x
-IFS=$'\n\t'
 
-REPO_DIR="$(cd "$(dirname "$(dirname "${BASH_SOURCE[0]}")")" && pwd)"
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TEMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TEMP_DIR"' EXIT
-BASE_DIR="${TEMP_DIR}/repo"
+BASE_DIR="$TEMP_DIR/repo"
+mkdir -p "$BASE_DIR"
 
-# Test committed HEAD only, without untracked runtime files (such as sockets).
-# --no-local honors --depth even when cloning from a local filesystem path.
-git clone --depth 1 --no-local "$REPO_DIR" "$BASE_DIR"
-# Send nested files in one top-level archive: some container CLI versions
-# silently omit directory contents when transferring a build context.
-# Include .git from the clean clone: installation uses git ls-files.
-tar -C "$BASE_DIR" -cf "${TEMP_DIR}/dotfiles.tar" .
-mv "${TEMP_DIR}/dotfiles.tar" "${BASE_DIR}/dotfiles.tar"
-echo "$BASE_DIR"
+# Test this worktree, including edits and new bootstrap/test files, not just
+# committed HEAD. Never archive ignored runtime state or an external .git file.
+while IFS= read -r -d '' path; do
+  [[ -f "$REPO_DIR/$path" || -L "$REPO_DIR/$path" ]] && printf '%s\0' "$path"
+done < <(
+  git -C "$REPO_DIR" ls-files -z --cached -- \
+    AGENTS.md CLAUDE.md .gitignore mise.toml install.sh Dockerfile README.md \
+    config bin mise scripts tests docs
+  # Include new installer/test code, but never untracked application configs.
+  git -C "$REPO_DIR" ls-files -z --others --exclude-standard -- mise scripts tests
+) >"$TEMP_DIR/paths"
+tar -C "$REPO_DIR" --null -T "$TEMP_DIR/paths" -cf "$TEMP_DIR/worktree.tar"
+tar -C "$BASE_DIR" -xf "$TEMP_DIR/worktree.tar"
+# manifest = "git" requires an index, not the original repository history.
+git -C "$BASE_DIR" init -q
+git -C "$BASE_DIR" add .
 
-# check container system is up and running
-container system status >&/dev/null || container system start
+tar -C "$BASE_DIR" -cf "$TEMP_DIR/dotfiles.tar" .
+mv "$TEMP_DIR/dotfiles.tar" "$BASE_DIR/dotfiles.tar"
 
-env GITHUB_TOKEN=$(gh auth token) \
-  container build --tag dotfiles-test --build-arg DOTFILES_SOURCE=dotfiles.tar \
-  --secret id=GITHUB_TOKEN,env=GITHUB_TOKEN \
-  --file "${BASE_DIR}/Dockerfile" "$BASE_DIR" &&
-  container run --name my-dotfiles --interactive --tty --rm dotfiles-test
+container system status >/dev/null 2>&1 || container system start
+build_args=()
+export GITHUB_TOKEN="${GITHUB_TOKEN:-$(gh auth token 2>/dev/null || true)}"
+if [[ -n "$GITHUB_TOKEN" ]]; then
+  build_args+=(--secret 'id=GITHUB_TOKEN,env=GITHUB_TOKEN')
+fi
+container build --tag dotfiles-test --build-arg DOTFILES_SOURCE=dotfiles.tar \
+  "${build_args[@]}" --file "$BASE_DIR/Dockerfile" "$BASE_DIR"
+echo "Unprivileged Linux bootstrap and tests passed."

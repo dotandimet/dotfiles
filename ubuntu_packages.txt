@@ -1,4 +1,0 @@
-ppa:mkasberg/ghostty-ubuntu
-neovim
-tmux
-ghostty
