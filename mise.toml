@@ -9,7 +9,14 @@ bats = "1.14.0"
 # Only Git-indexed files are copied. Never deploy caches, sessions, credentials,
 # or other runtime files left in a checkout by the old symlink installer.
 [dotfiles]
-"~/.config" = { source = "config", mode = "copy", manifest = "git", exclude = ["_bashrc", "_bash_profile", "_inputrc", "_pi", "_agents", "git/config"] }
+"~/.config" = { source = "config", mode = "copy", manifest = "git", exclude = [
+  "_bashrc",
+  "_bash_profile",
+  "_inputrc",
+  "_pi",
+  "_agents",
+  "git/config",
+] }
 "~/.pi" = { source = "config/_pi", mode = "copy", manifest = "git" }
 "~/.agents" = { source = "config/_agents", mode = "copy", manifest = "git" }
 "~/.local/bin" = { source = "bin", mode = "copy", manifest = "git" }
