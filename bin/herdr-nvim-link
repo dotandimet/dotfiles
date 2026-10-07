@@ -4,9 +4,13 @@
 Deploy with mise dotfiles apply, then register once:
     herdr plugin link ~/.config/herdr/plugins/nvim-links
 Restart existing LazyVim instances after deploying the RPC registration.
+Tracing is off by default. Set HERDR_NVIM_LINK_DEBUG=1 in the plugin's
+launch environment to enable it (exporting inside a pane does not update an
+already-running Herdr server). Unset, empty, 0, false, no, or off disables it.
+Failures still produce a concise stderr message when tracing is disabled.
 Live JSONL trace: ${XDG_CACHE_HOME:-~/.cache}/herdr-nvim-links/clicks.log
 The same trace is on stderr: herdr plugin log list --plugin dotfiles.nvim-links
-Each click has a run ID. handler.start confirms dispatch reached Python;
+With debugging enabled, each click has a run ID. handler.start confirms dispatch reached Python;
 handler.done means routing completed. No handler.start? Check Herdr's plugin
 log for launch errors (missing executable/interpreter) or an unmatched click.
 Logs contain local paths and process/socket IDs, but not file contents or the
@@ -35,6 +39,7 @@ from urllib.parse import unquote, urlsplit
 
 CACHE = Path(os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache") / "herdr-nvim-links"
 LOG_PATH = CACHE / "clicks.log"
+DEBUG = os.environ.get("HERDR_NVIM_LINK_DEBUG", "").strip().lower() not in {"", "0", "false", "no", "off"}
 STARTED = time.monotonic()
 RUN_ID = f"{os.getpid()}-{time.time_ns()}"
 LOG_FILE = None
@@ -43,6 +48,8 @@ LAST_VALUES = {}
 
 def log(event, **fields):
     global LOG_FILE
+    if not DEBUG:
+        return
     line = json.dumps({
         "time": datetime.now(timezone.utc).isoformat(timespec="milliseconds"),
         "run": RUN_ID,
@@ -62,6 +69,8 @@ def log(event, **fields):
 
 def setup_logging():
     global LOG_FILE
+    if not DEBUG:
+        return
     try:
         CACHE.mkdir(mode=0o700, parents=True, exist_ok=True)
         fd = os.open(LOG_PATH, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
@@ -71,6 +80,8 @@ def setup_logging():
 
 
 def log_change(event, key, **fields):
+    if not DEBUG:
+        return
     # Polling can run every 100 ms: report the first observation and changes,
     # not hundreds of identical snapshots while waiting for shell/editor startup.
     identity = (event, key)
@@ -382,17 +393,20 @@ if __name__ == "__main__":
         main()
         log("handler.done")
     except Exception as error:
-        details = {}
-        if isinstance(error, subprocess.SubprocessError):
-            # TimeoutExpired output can be bytes even with text=True.
-            for name in ("stdout", "stderr"):
-                output = getattr(error, name, None)
-                if isinstance(output, bytes):
-                    output = output.decode(errors="replace")
-                if output:
-                    details[name] = output[:2000]
-        log("handler.failed", error_type=type(error).__name__, error=str(error),
-            traceback=traceback.format_exc(), **details)
+        if DEBUG:
+            details = {}
+            if isinstance(error, subprocess.SubprocessError):
+                # TimeoutExpired output can be bytes even with text=True.
+                for name in ("stdout", "stderr"):
+                    output = getattr(error, name, None)
+                    if isinstance(output, bytes):
+                        output = output.decode(errors="replace")
+                    if output:
+                        details[name] = output[:2000]
+            log("handler.failed", error_type=type(error).__name__, error=str(error),
+                traceback=traceback.format_exc(), **details)
+        else:
+            print(f"herdr-nvim-link: {error}", file=sys.stderr)
         sys.exit(1)
     finally:
         if LOG_FILE is not None:
