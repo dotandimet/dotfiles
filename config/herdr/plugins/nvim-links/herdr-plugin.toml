@@ -1,0 +1,25 @@
+# After mise dotfiles apply, register once:
+#   herdr plugin link ~/.config/herdr/plugins/nvim-links
+# Requires the LazyVim RPC registration in lua/config/options.lua.
+# Ctrl-click is handled by Herdr; Ghostty's Cmd-click remains unchanged.
+id = "dotfiles.nvim-links"
+name = "Local files in Neovim"
+version = "0.1.0"
+min_herdr_version = "0.9.3"
+description = "Route local text-file Ctrl-clicks to the workspace's nvim tab"
+platforms = ["macos"]
+
+[[actions]]
+id = "open"
+title = "Open clicked local file"
+contexts = ["workspace"]
+command = ["sh", "-c", 'exec "$HOME/.local/bin/herdr-nvim-link"']
+
+# Match all local-file candidates so extensionless text files work too.
+# The script validates the host and content, and opens non-text files normally.
+# Once dispatched, errors are logged rather than falling back to the OS opener.
+[[link_handlers]]
+id = "local-file"
+title = "Open local file"
+pattern = "(?i)^file://"
+action = "open"

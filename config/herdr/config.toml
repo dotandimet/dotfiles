@@ -65,6 +65,9 @@ command = "exec lazygit"
 description = "Lazygit"
 
 [ui]
+# Let Herdr's nvim-links plugin receive Ctrl-clicks (Cmd-click stays in Ghostty).
+mouse_capture = true
+
 # Closer to tmux's immediate `new-window` behavior.
 prompt_new_tab_name = false
 

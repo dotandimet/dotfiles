@@ -1,0 +1,223 @@
+#!/usr/bin/env python3
+"""Herdr local-file Ctrl-click handler (macOS, Python 3; no extra packages).
+
+Deploy with mise dotfiles apply, then register once:
+    herdr plugin link ~/.config/herdr/plugins/nvim-links
+Restart existing LazyVim instances after deploying the RPC registration.
+Errors are recorded by: herdr plugin log list --plugin dotfiles.nvim-links
+
+All file:// clicks are consumed by the plugin. Text goes to Neovim; other
+local files go to macOS's default app. Errors never fall through to `open`.
+"""
+
+import fcntl
+import hashlib
+import json
+import os
+from pathlib import Path
+import shlex
+import shutil
+import socket
+import stat
+import subprocess
+import sys
+import time
+from urllib.parse import unquote, urlsplit
+
+
+CACHE = Path(os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache") / "herdr-nvim-links"
+
+
+def api(method, **params):
+    """The Unix socket also exposes pane.focus (no direct CLI equivalent)."""
+    with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
+        client.settimeout(10)
+        client.connect(os.environ["HERDR_SOCKET_PATH"])
+        request = {"id": "nvim-link", "method": method, "params": params}
+        client.sendall(json.dumps(request).encode() + b"\n")
+        with client.makefile("rb") as reader:
+            response = json.loads(reader.readline())
+    if "error" in response:
+        raise RuntimeError(f"{method}: {response['error']}")
+    return response["result"]
+
+
+def local_path(url):
+    parsed = urlsplit(url)
+    hosts = {"", "localhost", socket.gethostname().lower(), socket.getfqdn().lower()}
+    if parsed.scheme != "file" or parsed.netloc.lower() not in hosts:
+        raise ValueError("Only local file:// links are supported; refusing a remote host")
+    path = unquote(parsed.path, errors="strict")
+    if not path.startswith("/") or any(ord(c) < 32 or ord(c) == 127 for c in path):
+        raise ValueError("Expected an absolute file path without control characters")
+    path = Path(path)
+    if not path.exists():
+        raise FileNotFoundError(path)
+    return path
+
+
+def is_text(path):
+    # Inspect contents, not extensions: extensionless files and dotfiles work,
+    # and renaming a binary to .md does not send it to the editor.
+    if not path.is_file():
+        return False
+    if path.stat().st_size == 0:
+        return True
+    mime = subprocess.run(
+        ["/usr/bin/file", "-L", "-b", "--mime-type", "--", str(path)],
+        check=True, capture_output=True, text=True, timeout=5,
+    ).stdout.strip()
+    return (
+        mime.startswith("text/")
+        or mime.endswith(("+json", "+xml"))
+        or mime in {"application/json", "application/xml", "application/javascript",
+                    "application/toml", "application/yaml", "application/x-yaml",
+                    "application/sql", "application/x-shellscript"}
+    )
+
+
+def processes(pane):
+    return api("pane.process_info", pane_id=pane["pane_id"])["process_info"]
+
+
+def nvim_processes(info):
+    return [p for p in info.get("foreground_processes", [])
+            if Path(p.get("argv0") or p["name"]).name == "nvim"]
+
+
+def idle_shell(info):
+    procs = info.get("foreground_processes", [])
+    return bool(procs) and all(
+        p["pid"] == info.get("shell_pid")
+        and Path(p.get("argv0") or p["name"]).name.lstrip("-") in {"bash", "zsh", "sh", "fish"}
+        for p in procs
+    )
+
+
+def server_for(proc):
+    # The PID comes from this pane's live foreground processes. Do not pin the
+    # registration to its original pane ID: panes can move between workspaces.
+    # Neovim's getpid() is checked over RPC before opening anything as well.
+    try:
+        record = json.loads((CACHE / f"{proc['pid']}.json").read_text())
+    except FileNotFoundError:
+        return None
+    if (record.get("pid") == proc["pid"]
+            and record.get("herdr_socket") == os.environ["HERDR_SOCKET_PATH"]):
+        return record["server"]
+    return None
+
+
+def remote(nvim, server, expression):
+    result = subprocess.run(
+        [nvim, "--server", server, "--remote-expr", expression],
+        capture_output=True, text=True, timeout=10,
+    )
+    if result.returncode:
+        raise RuntimeError(f"Neovim RPC failed: {result.stderr.strip() or result.stdout.strip()}")
+    return result.stdout.strip()
+
+
+def open_existing(nvim, proc, pane, path):
+    server = server_for(proc)
+    if not server:
+        raise RuntimeError("Neovim is running but has no link registration; restart it after deploying LazyVim config")
+    if remote(nvim, server, "getpid()") != str(proc["pid"]):
+        raise RuntimeError("Stale Neovim RPC registration; refusing to target another process")
+    # Vim single-quoted strings escape quotes by doubling them. nvim_cmd's
+    # structured args avoid Ex-command injection and filename expansion.
+    quoted_path = "'" + str(path).replace("'", "''") + "'"
+    expression = (
+        "luaeval('vim.api.nvim_cmd({cmd=\"drop\", args={_A}, "
+        "magic={file=false, bar=false}}, {})', " + quoted_path + ")"
+    )
+    remote(nvim, server, expression)
+    api("pane.focus", pane_id=pane["pane_id"])
+
+
+def start_nvim(nvim, pane, path):
+    # New shells may still be starting. Never paste a command into an agent,
+    # editor, or other foreground program.
+    deadline = time.monotonic() + 10
+    while not idle_shell(processes(pane)):
+        if time.monotonic() >= deadline:
+            raise RuntimeError("Target pane did not become an idle shell; no command sent")
+        time.sleep(0.1)
+    api("pane.send_keys", pane_id=pane["pane_id"], keys=["ctrl+u"])
+    api("pane.send_input", pane_id=pane["pane_id"],
+        text=shlex.join([nvim, "--", str(path)]), keys=["Enter"])
+    api("pane.focus", pane_id=pane["pane_id"])
+    # Keep the per-workspace lock until startup registers the editor, so a
+    # rapid second click reuses it instead of opening another tab.
+    deadline = time.monotonic() + 15
+    while time.monotonic() < deadline:
+        for proc in nvim_processes(processes(pane)):
+            if server_for(proc):
+                return
+        time.sleep(0.1)
+    raise RuntimeError("Neovim was launched but did not register RPC; check its startup/config")
+
+
+def route(nvim, context, path):
+    origin = api("pane.get", pane_id=context["focused_pane_id"])["pane"]
+    workspace = context["workspace_id"]
+    if origin["workspace_id"] != workspace or origin["tab_id"] != context["tab_id"]:
+        raise RuntimeError("The clicked pane moved; click the link again")
+    tabs = api("tab.list", workspace_id=workspace)["tabs"]
+    editor_tabs = {t["tab_id"] for t in tabs if t["label"] == "nvim"}
+    panes = api("pane.list", workspace_id=workspace)["panes"]
+    candidates = [p for p in panes if p["tab_id"] in editor_tabs]
+    # Prefer the clicked pane/tab if there are multiple tabs named nvim.
+    candidates.sort(key=lambda p: (p["tab_id"] != origin["tab_id"], p["pane_id"] != origin["pane_id"]))
+    infos = {p["pane_id"]: processes(p) for p in candidates}
+    for pane in candidates:
+        editors = nvim_processes(infos[pane["pane_id"]])
+        if editors:
+            open_existing(nvim, editors[0], pane, path)
+            return
+
+    cwd = origin.get("foreground_cwd") or origin.get("cwd") or str(path.parent)
+    if origin["tab_id"] in editor_tabs:
+        # Stay in the clicked nvim tab. If it is busy, add a split rather than
+        # interrupting its foreground program or sending it shell commands.
+        idle = [p for p in candidates if p["tab_id"] == origin["tab_id"]
+                and idle_shell(infos[p["pane_id"]])]
+        pane = idle[0] if idle else api(
+            "pane.split", workspace_id=workspace, target_pane_id=origin["pane_id"],
+            direction="right", cwd=cwd, focus=False,
+        )["pane"]
+    else:
+        pane = api("tab.create", workspace_id=workspace, label="nvim", cwd=cwd, focus=False)["root_pane"]
+    start_nvim(nvim, pane, path)
+
+
+def main():
+    if os.environ.get("HERDR_ENV") != "1":
+        raise RuntimeError("Run this through the Herdr nvim-links plugin")
+    context = json.loads(os.environ["HERDR_PLUGIN_CONTEXT_JSON"])
+    if context.get("invocation_source") != "link_click":
+        raise RuntimeError("This action requires a link click with originating pane context")
+    path = local_path(context["clicked_url"])
+    mode = path.stat().st_mode
+    if not (stat.S_ISREG(mode) or stat.S_ISDIR(mode)):
+        raise ValueError("Refusing to open a device, socket, or other special file")
+    if not is_text(path):
+        subprocess.run(["/usr/bin/open", str(path)], check=True, timeout=10)
+        return
+    nvim = shutil.which("nvim")
+    if not nvim:
+        raise RuntimeError("nvim is not on Herdr's PATH")
+    state = Path(os.environ["HERDR_PLUGIN_STATE_DIR"])
+    key = os.environ["HERDR_SOCKET_PATH"] + "\0" + context["workspace_id"]
+    lock = state / (hashlib.sha256(key.encode()).hexdigest() + ".lock")
+    with lock.open("w") as handle:
+        fcntl.flock(handle, fcntl.LOCK_EX)
+        route(nvim, context, path)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (OSError, ValueError, KeyError, RuntimeError, subprocess.SubprocessError) as error:
+        print(f"herdr-nvim-link: {error}", file=sys.stderr)
+        sys.exit(1)
