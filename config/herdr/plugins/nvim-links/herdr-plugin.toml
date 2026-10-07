@@ -1,6 +1,5 @@
 # After mise dotfiles apply, register once:
 #   herdr plugin link ~/.config/herdr/plugins/nvim-links
-# Requires the LazyVim RPC registration in lua/config/options.lua.
 # Ctrl-click is handled by Herdr; Ghostty's Cmd-click remains unchanged.
 id = "dotfiles.nvim-links"
 name = "Local files in Neovim"
