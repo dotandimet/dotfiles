@@ -1,0 +1,25 @@
+# After mise dotfiles apply, register once:
+#   herdr plugin link ~/.config/herdr/plugins/nvim-links
+# Ctrl-click is handled by Herdr; Ghostty's Cmd-click remains unchanged.
+id = "dotfiles.nvim-links"
+name = "Local files in Neovim"
+version = "0.1.0"
+min_herdr_version = "0.9.3"
+description = "Route local text-file Ctrl-clicks to the workspace's nvim tab"
+platforms = ["macos"]
+
+[[actions]]
+id = "open"
+title = "Open clicked local file"
+contexts = ["workspace"]
+# Herdr runs actions with the plugin directory as their working directory.
+command = ["python3", "herdr-nvim-link.py"]
+
+# Match all local-file candidates so extensionless text files work too.
+# The script validates the host and content, and opens non-text files normally.
+# Once dispatched, errors are logged rather than falling back to the OS opener.
+[[link_handlers]]
+id = "local-file"
+title = "Open local file"
+pattern = "(?i)^file://"
+action = "open"
