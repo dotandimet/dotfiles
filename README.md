@@ -1,15 +1,15 @@
 # Dotan's Dotfiles
 
 Development configuration for macOS and unprivileged Linux environments,
-including Codespaces and Coder. **Mise bootstrap is the installer.**
+including Codespaces and Coder. Mise installs tools and copies configuration
+from this repository into your home directory.
 
 ## Install
 
-Prerequisites: Bash, Git, curl, CA certificates, and mise **2026.9.13 or newer**.
-Linux tools use prebuilt releases installed under your home directory; the
-bootstrap does not use apt, sudo, Linuxbrew, or change your login shell.
+Prerequisites: Bash, Git, curl, CA certificates, and mise **2026.9.13 or newer**
+(or use `install.sh` below to install mise).
 
-From this checkout:
+Review the repository before trusting it. From this checkout:
 
 ```bash
 mise trust
@@ -25,71 +25,67 @@ provides the conventional dotfiles entry point for Codespaces/Coder:
 ./install.sh --yes
 ```
 
-Review the repository before trusting it. Bootstrap changes installed
-configuration; run it from the worktree you want to deploy, not concurrently
-from multiple worktrees.
+Bootstrap installs tools and applies configuration. Back up any existing
+configuration first. It does not change your login shell.
 
-**Existing symlink installation?** Follow the migration steps below first.
-
-The current native mise dotfile manifest targets `~/.config`. A non-default
-`XDG_CONFIG_HOME` is rejected before writing: this mise version does not expand
-environment variables or templates in dotfile target paths.
+Configuration targets `~/.config`; a non-default `XDG_CONFIG_HOME` is not
+supported.
 
 ### Platform tools
 
-| Manifest | Purpose |
-| --- | --- |
-| `mise/conf.d/dotfiles-common.toml` | Shared mise tools, language runtimes, settings |
-| `mise/conf.d/dotfiles-linux.toml` | Prebuilt Neovim and tmux, installed by mise only on Linux |
-| `mise/conf.d/dotfiles-macos.toml` | macOS-only Homebrew formulae, Ghostty, and font |
+| Manifest                           | Purpose                                                   |
+| ---------------------------------- | --------------------------------------------------------- |
+| `mise/conf.d/dotfiles-common.toml` | Shared mise tools, language runtimes, settings            |
+| `mise/conf.d/dotfiles-linux.toml`  | Prebuilt Neovim and tmux, installed by mise only on Linux |
+| `mise/conf.d/dotfiles-macos.toml`  | macOS-only Homebrew formulae, Ghostty, and font           |
 
-The fragments load automatically; no `-E` flag is needed. Explicit OS selectors
-prevent macOS packages from running on Linux. Bootstrap copies these fragments
-into `~/.config/mise/conf.d/` so tools remain available outside the checkout,
-without replacing a personal mise config.
+The fragments load automatically for the appropriate platform. Bootstrap
+copies them into `~/.config/mise/conf.d/` so tools remain available outside the
+checkout, without replacing a personal mise config.
 
 On Apple Silicon macOS, mise installs Homebrew packages into `/opt/homebrew`
 using its built-in package manager; a `brew` executable is not required.
 Prefix creation and some app installs may request administrator permission.
 Xcode Command Line Tools may be needed. Mise's built-in Homebrew backend does
 not currently support Intel Macs; those packages must be installed separately.
-Bootstrap no longer runs `chsh` or modifies `/etc/shells`. Choose a login shell
-separately if desired.
 
-Linux deliberately does not install GUI applications or fonts. It assumes a
-supported glibc-based Linux host with standard archive utilities and the
-runtime libraries required by upstream binaries (notably `libatomic.so.1` for
-Node 26 on arm64). Those must be supplied by the host/image; bootstrap does not
-provision system libraries or a compiler toolchain.
+Linux uses prebuilt releases installed under your home directory, without sudo
+or system package installation. It requires a supported glibc-based host with
+standard archive utilities and upstream runtime libraries (notably
+`libatomic.so.1` for Node 26 on arm64). The host/image must provide these;
+bootstrap does not install system libraries, a compiler toolchain, GUI apps,
+or fonts.
 
-## Sync configuration
+## Everyday updates
 
-Edit files **in the repository**, then preview and apply:
+Edit files **in the repository**, not the installed copies. From this checkout,
+preview and apply your changes (or changes pulled from Git):
 
 ```bash
 mise dot diff
 mise dot apply
 mise dot status --missing
-source ~/.bashrc
 ```
 
-Or run `mise bootstrap` again to apply configuration and install missing tools.
-Use `mise install` for versioned tools only, and `mise bootstrap --only packages`
-for macOS packages. After changing Neovim plugins, run `:Lazy sync`.
+**Add new files to Git before applying**: directory copies deploy only
+Git-indexed files. Changes to already tracked files do not need a commit.
 
-### Ownership rules
+- After changing Bash configuration: `source ~/.bashrc`.
+- After changing Neovim plugins: `:Lazy sync`.
+- To apply configuration and install missing tools: `mise bootstrap`.
+- For versioned tools only: `mise install`.
+- For macOS packages only: `mise bootstrap --only packages`.
 
-- Most configuration and `bin/` scripts become **regular copies**, not links.
-  Copies preserve script executable permissions.
+### How configuration is applied
+
+- Most configuration becomes **regular copies**, not links. Scripts in `bin/`
+  are copied to `~/.local/bin/` with their executable permissions preserved.
 - `config/` maps to `~/.config/`, except the explicitly mapped home files:
   `config/_pi/` → `~/.pi/`, `config/_agents/` → `~/.agents/`, and the
   fenced files listed below.
 - `.bashrc`, `.bash_profile`, `.inputrc`, and `~/.config/git/config` receive
   the corresponding tracked content inside `mise:dotfiles` comment fences.
   Mise updates that block and preserves text outside it.
-- Directory copies use `manifest = "git"`: only Git-indexed files are deployed.
-  **Add new files to Git before applying.** Ignored/untracked credentials,
-  sessions, caches, and other runtime state are never deployed.
 - Unrelated destination files are preserved. Removing a source file or entry
   does **not** delete its previously installed copy; review and remove stale
   copies explicitly.
@@ -100,68 +96,13 @@ copy wanted changes into the repo first. Fenced blocks preserve bytes outside
 their markers, but shell settings inside a block can still override earlier
 settings when sourced.
 
-There is no watcher, background Git push, or automatic two-way sync. This is a
-**public repository**: do not enable broad tracking/history sharing of home
-directories, agent state, credentials, or environment-specific customizations.
-Runtime data belongs in installed directories, not the source checkout.
+Bootstrap requires real destination directories and rejects symlinks at
+fenced-file targets. Back up any conflicting links and preserve their local
+content in regular directories/files before installing.
 
-## Migrate from symlinks
-
-Back up your installed configuration first. Bootstrap's preflight rejects
-directory symlinks and symlinks at fenced-file targets before deploying files.
-It does not use force or silently follow them into the checkout.
-
-1. For each fenced-file symlink (`.bashrc`, `.bash_profile`, `.inputrc`,
-   `~/.config/git/config`), move the link to an **unused backup path**. For
-   example, after checking `~/.bashrc.pre-mise` does not exist:
-
-   ```bash
-   mv ~/.bashrc ~/.bashrc.pre-mise
-   ```
-
-   If that file was entirely managed by the old repo, leave its destination
-   absent; bootstrap creates the fenced version. If it contains personal
-   customizations, restore **only those customizations** to a regular file
-   before applying. Copying the entire old tracked content back would leave
-   duplicate, unmanaged settings outside the new block.
-
-2. For old directory links, replace the link with a real directory while
-   preserving installed state. Example, using an unused backup name:
-
-   ```bash
-   mv ~/.pi ~/.pi.pre-mise
-   mkdir ~/.pi
-   cp -RL ~/.pi.pre-mise/. ~/.pi/
-   ```
-
-   Repeat for any linked configuration directories the preflight reports,
-   including nested ones. Keep credentials and sessions locally; do not add
-   them to this repository. Inspect dangling links before recursively copying.
-
-3. Back up/remove the old installer-owned mise config link at
-   `~/.config/mise/mise.toml`, if present. Do not remove an unrelated personal
-   config. The replacement uses namespaced `conf.d/dotfiles-*.toml` files.
-
-4. Run `mise bootstrap --only dotfiles`, inspect `mise dot diff`, then run
-   `mise bootstrap`. Existing leaf symlinks for whole-file copy entries are
-   replaced with regular copies without modifying their old source.
-
-## Validate changes
-
-```bash
-mise test
-./tests/docker_test_mac.sh
-```
-
-The Bats suite runs native mise against isolated temporary homes and Git
-indexes. It checks copies, fenced edits, repeat applies, preserved runtime
-state, and safe rejection of legacy links. It does not install tools.
-
-The macOS container test uses Apple's `container` CLI and snapshots the
-**current worktree**, including uncommitted installer changes. It builds an
-Ubuntu image, runs a full bootstrap as a user with **no sudo**, verifies Neovim
-and tmux, reapplies dotfiles, and runs tests. A GitHub token is optional and is
-passed as a build secret when available, never baked into the image.
+This is a **public repository**. Keep credentials, sessions, caches, and other
+runtime state in installed directories, not the checkout; untracked files are
+not included in directory copies.
 
 ## Daily use
 
@@ -176,3 +117,19 @@ Agent configuration lives under `config/_pi/agent/` and
 `config/_agents/`. Only reviewed configuration and skills are tracked.
 `pi update --extensions` restores Pi packages from their settings declarations.
 The Herdr integration extension is an imported snapshot managed by Herdr.
+
+## Validate changes
+
+```bash
+mise test
+./tests/docker_test_mac.sh
+```
+
+The Bats suite checks configuration deployment against isolated temporary homes
+and Git indexes, without installing tools.
+
+The container test requires Apple's `container` CLI on macOS. It snapshots the
+**current worktree**, including uncommitted installer changes, and runs a full
+bootstrap in Ubuntu as a user with **no sudo**. It verifies Neovim and tmux,
+reapplies dotfiles, and runs tests. An optional GitHub token is passed as a
+build secret, never baked into the image.
