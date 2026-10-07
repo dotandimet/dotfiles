@@ -13,7 +13,8 @@ platforms = ["macos"]
 id = "open"
 title = "Open clicked local file"
 contexts = ["workspace"]
-command = ["sh", "-c", 'exec "$HOME/.local/bin/herdr-nvim-link"']
+# Herdr runs actions with the plugin directory as their working directory.
+command = ["python3", "herdr-nvim-link.py"]
 
 # Match all local-file candidates so extensionless text files work too.
 # The script validates the host and content, and opens non-text files normally.

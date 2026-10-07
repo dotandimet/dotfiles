@@ -6,6 +6,7 @@ config/lazyvim/lazy-lock.json
 !/config/herdr/plugins/nvim-links/
 /config/herdr/plugins/nvim-links/*
 !/config/herdr/plugins/nvim-links/herdr-plugin.toml
+!/config/herdr/plugins/nvim-links/herdr-nvim-link.py
 
 # Agent configs: track only reviewed config, never agent runtime data.
 /config/pi/*

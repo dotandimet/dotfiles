@@ -2,7 +2,7 @@
 -- Default options that are always set: https://github.com/LazyVim/LazyVim/blob/main/lua/lazyvim/config/options.lua
 -- Add any additional options here
 
--- Let bin/herdr-nvim-link find this editor without sending terminal keystrokes.
+-- Let Herdr's nvim-links plugin find this editor without sending terminal keystrokes.
 -- Register early, including when Neovim starts with no file (LazyVim's later
 -- autocmds.lua loading is deferred in that case). RPC stays on a local socket.
 if vim.env.HERDR_ENV == "1" and vim.env.HERDR_PANE_ID then
