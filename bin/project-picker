@@ -7,10 +7,10 @@ PROJECTS="${PROJECTS:-$HOME/Documents/code}"
 create_project() {
   local project="$1"
   case "$project" in
-    ""|.|..|*/*)
-      printf 'Error: Project name must be a single directory name\n' >&2
-      return 1
-      ;;
+  "" | . | .. | */*)
+    printf 'Error: Project name must be a single directory name\n' >&2
+    return 1
+    ;;
   esac
   mkdir -p -- "$PROJECTS/$project"
 }
@@ -24,8 +24,8 @@ pick_projects() {
   project_names=$(fd . "$PROJECTS" --type d --max-depth 1 --exec basename {} \;) || return
   selection=$(printf '%s\n' "$project_names" | fzf --multi --print-query --query="$query") || picker_status=$?
   case "$picker_status" in
-    0|1) ;;
-    *) return "$picker_status" ;;
+  0 | 1) ;;
+  *) return "$picker_status" ;;
   esac
 
   query="${selection%%$'\n'*}"
@@ -47,7 +47,7 @@ create_command_tab() {
 
   tab=$(herdr tab create --workspace "$workspace_id" --cwd "$project_dir" --label "$command") || return
   pane_id=$(printf '%s' "$tab" | jq -r '.result.root_pane.pane_id') || return
-  herdr pane run "$pane_id" "$command" > /dev/null
+  herdr pane run "$pane_id" "$command" >/dev/null
 }
 
 # Print the pi tab ID; keep other Herdr responses out of this return value.
@@ -61,8 +61,8 @@ create_project_workspace() {
   pi_tab_id=$(printf '%s' "$workspace" | jq -r '.result.tab.tab_id') || return
   pi_pane_id=$(printf '%s' "$workspace" | jq -r '.result.root_pane.pane_id') || return
 
-  herdr tab rename "$pi_tab_id" pi > /dev/null || return
-  herdr pane run "$pi_pane_id" pi > /dev/null || return
+  herdr tab rename "$pi_tab_id" pi >/dev/null || return
+  herdr pane run "$pi_pane_id" "pi --continue" >/dev/null || return
   create_command_tab "$workspace_id" "$project_dir" nvim || return
   create_command_tab "$workspace_id" "$project_dir" bash || return
   printf '%s\n' "$pi_tab_id"
@@ -78,7 +78,7 @@ open_projects() {
     if [[ -z "$first_pi_tab_id" ]]; then
       first_pi_tab_id="$pi_tab_id"
     fi
-  done <<< "$projects"
+  done <<<"$projects"
 
   herdr tab focus "$first_pi_tab_id"
 }

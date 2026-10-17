@@ -14,15 +14,15 @@ setup() {
   export FD_STATUS=0
   export HERDR_STATUS=0
   mkdir -p "$TEST_DIR/bin" "$PROJECTS/existing" "$PROJECTS/second"
-  : > "$CALLS"
+  : >"$CALLS"
 
-  cat > "$TEST_DIR/bin/fd" <<'EOF'
+  cat >"$TEST_DIR/bin/fd" <<'EOF'
 #!/usr/bin/env bash
 printf '%s\n' existing second
 exit "$FD_STATUS"
 EOF
 
-  cat > "$TEST_DIR/bin/fzf" <<'EOF'
+  cat >"$TEST_DIR/bin/fzf" <<'EOF'
 #!/usr/bin/env bash
 # Drain the pipe so the producer cannot fail with SIGPIPE.
 cat > /dev/null
@@ -30,7 +30,7 @@ printf '%s' "$PICKER_OUTPUT"
 exit "$PICKER_STATUS"
 EOF
 
-  cat > "$TEST_DIR/bin/herdr" <<'EOF'
+  cat >"$TEST_DIR/bin/herdr" <<'EOF'
 #!/usr/bin/env bash
 jq -cn --args '$ARGS.positional' -- "$@" >> "$CALLS"
 if [[ "$HERDR_STATUS" -ne 0 ]]; then
@@ -63,13 +63,13 @@ assert_projects() {
     [ -d "$PROJECTS/$project" ]
     jq -se --arg dir "$PROJECTS/$project" --arg label "$project" \
       'map(select(. == ["workspace", "create", "--cwd", $dir, "--label", $label])) | length == 1' \
-      "$CALLS" > /dev/null
+      "$CALLS" >/dev/null
   done
 
   expected_dirs="$(printf '%s\n' existing second "$@" | sort -u)"
   actual_dirs="$(find "$PROJECTS" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | sort)"
   [ "$actual_dirs" = "$expected_dirs" ]
-  jq -se '.[-1] == ["tab", "focus", "tab"]' "$CALLS" > /dev/null
+  jq -se '.[-1] == ["tab", "focus", "tab"]' "$CALLS" >/dev/null
 }
 
 assert_no_changes() {
@@ -140,7 +140,7 @@ assert_no_changes() {
   jq -se --arg dir "$PROJECTS/existing" '. == [
     ["tab", "create", "--workspace", "workspace", "--cwd", $dir, "--label", "nvim"],
     ["pane", "run", "pane", "nvim"]
-  ]' "$CALLS" > /dev/null
+  ]' "$CALLS" >/dev/null
 }
 
 @test "create_project_workspace sets up all three tabs and returns the pi tab ID" {
@@ -150,12 +150,12 @@ assert_no_changes() {
   jq -se --arg dir "$PROJECTS/existing" '. == [
     ["workspace", "create", "--cwd", $dir, "--label", "existing"],
     ["tab", "rename", "tab", "pi"],
-    ["pane", "run", "pane", "pi"],
+    ["pane", "run", "pane", "pi --continue"],
     ["tab", "create", "--workspace", "workspace", "--cwd", $dir, "--label", "nvim"],
     ["pane", "run", "pane", "nvim"],
     ["tab", "create", "--workspace", "workspace", "--cwd", $dir, "--label", "bash"],
     ["pane", "run", "pane", "bash"]
-  ]' "$CALLS" > /dev/null
+  ]' "$CALLS" >/dev/null
 }
 
 @test "open_projects does nothing for an empty selection" {
@@ -175,7 +175,7 @@ _open_projects_with_distinct_tabs() {
 @test "open_projects focuses the first project's pi tab" {
   run _open_projects_with_distinct_tabs
   [ "$status" -eq 0 ]
-  jq -se '. == [["tab", "focus", "existing-pi-tab"]]' "$CALLS" > /dev/null
+  jq -se '. == [["tab", "focus", "existing-pi-tab"]]' "$CALLS" >/dev/null
 }
 
 @test "open_projects stops on workspace creation failure without focusing a tab" {
@@ -184,7 +184,7 @@ _open_projects_with_distinct_tabs() {
   [ "$status" -eq 4 ]
   jq -se --arg dir "$PROJECTS/existing" '. == [
     ["workspace", "create", "--cwd", $dir, "--label", "existing"]
-  ]' "$CALLS" > /dev/null
+  ]' "$CALLS" >/dev/null
 }
 
 # --- end-to-end tests ---
