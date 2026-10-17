@@ -38,16 +38,10 @@ export HISTCONTROL=ignoredups
   export PATH="$PATH:/Applications/Obsidian.app/Contents/MacOS"
 
 # Personal bin/ directory, exactly once even after re-sourcing this block.
-_dotfiles_path=":${PATH}:"
-# Keep slashes out of the substitution pattern syntax for macOS Bash 3.2.
-_dotfiles_local_bin=":${HOME}/.local/bin:"
-while [[ "$_dotfiles_path" == *"$_dotfiles_local_bin"* ]]; do
-  _dotfiles_path="${_dotfiles_path/"$_dotfiles_local_bin"/:}"
-done
-_dotfiles_path="${_dotfiles_path#:}"
-_dotfiles_path="${_dotfiles_path%:}"
-export PATH="${HOME}/.local/bin${_dotfiles_path:+:${_dotfiles_path}}"
-unset _dotfiles_path _dotfiles_local_bin
+  case ":$PATH:" in
+     *":$HOME/.local/bin:"*) ;;
+     *) export PATH="$HOME/.local/bin:$PATH" ;;
+   esac
 
 alias ls="ls --color=auto"
 
@@ -79,13 +73,10 @@ alias s="starship toggle line_break"
 
 # mise bootstrap can install Homebrew bottles without a brew executable.
 if [[ "$OSTYPE" == darwin* ]]; then
-  for _brew_prefix in /opt/homebrew /usr/local; do
-    if [[ -x "$_brew_prefix/bin/bash" ]]; then
-      [[ ":$PATH:" == *":$_brew_prefix/bin:"* ]] || export PATH="$_brew_prefix/bin:$PATH"
-      break
-    fi
-  done
-  unset _brew_prefix
+  case ":$PATH:" in
+     *":/opt/homebrew/bin:/opt/homebrew/sbin:"*) ;;
+     *) export PATH="/opt/homebrew/bin:/opt/homebrew/sbin${PATH+:$PATH}" ;;
+   esac
 fi
 command -v mise >/dev/null 2>&1 && eval "$(mise activate bash)"
 # bash completions
