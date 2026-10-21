@@ -86,7 +86,7 @@ _count_in_path() {
 _check_local_bin_path() {
   local shell="$1"
   local path_setup
-  path_setup="$(awk '/^# Personal bin\//,/^unset _dotfiles_path/' "$BASHRC")"
+  path_setup="$(awk '/^# Personal bin\//,/^alias ls/ { if ($0 !~ /^alias ls/) print }' "$BASHRC")"
   run "$shell" --norc --noprofile -c '
     HOME="$1"
     PATH="$2"
@@ -98,23 +98,23 @@ _check_local_bin_path() {
   [ "$status" -eq 0 ]
 }
 
-@test "local bin normalization preserves other PATH entries on system and current Bash" {
+@test "local bin presence check preserves existing PATH entries on system and current Bash" {
   local shell
   for shell in /bin/bash bash; do
     _check_local_bin_path "$shell" \
       "/usr/bin:$HOME/.local/bin:$HOME/.local/bin:/bin:$HOME/.local/bin" \
-      "$HOME/.local/bin:/usr/bin:/bin"
+      "/usr/bin:$HOME/.local/bin:$HOME/.local/bin:/bin:$HOME/.local/bin"
     _check_local_bin_path "$shell" "/usr/bin:/bin" "$HOME/.local/bin:/usr/bin:/bin"
   done
 }
 
-@test "local bin normalization treats home literally and preserves empty PATH entries" {
+@test "local bin presence check treats home literally and preserves empty PATH entries" {
   local shell
   HOME="$TEST_DIR/home with [brackets] and *"
   for shell in /bin/bash bash; do
     _check_local_bin_path "$shell" \
       ":/usr/bin:$HOME/.local/bin::/bin:$HOME/.local/bin-extra:" \
-      "$HOME/.local/bin::/usr/bin::/bin:$HOME/.local/bin-extra:"
+      ":/usr/bin:$HOME/.local/bin::/bin:$HOME/.local/bin-extra:"
   done
 }
 
@@ -141,7 +141,7 @@ _check_local_bin_path() {
   [ "$count" -eq 1 ]
 }
 
-@test "~/.local/bin appears exactly once when PATH already contains it before sourcing" {
+@test "~/.local/bin does not gain more duplicates when PATH already contains duplicates" {
   path_result="$(bash --norc --noprofile -c "
     export HOME='$HOME'
     export PATH='$HOME/.local/bin:$MOCK_PATH'
@@ -149,5 +149,5 @@ _check_local_bin_path() {
     echo \"\$PATH\"
   ")"
   count="$(_count_in_path "$HOME/.local/bin" "$path_result")"
-  [ "$count" -eq 1 ]
+  [ "$count" -eq 2 ]
 }

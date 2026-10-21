@@ -14,7 +14,7 @@
   "collapseChangelog": true,
   "quietStartup": false,
   "enableSkillCommands": true,
-  "theme": "dark",
+  "theme": "system",
   "enabledModels": [
     "anthropic/claude-fable-5-1",
     "openrouter/moonshotai/kimi-k3",

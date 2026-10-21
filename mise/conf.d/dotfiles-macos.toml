@@ -2,6 +2,12 @@
 # fragments are loaded globally. mise installs into the Homebrew prefix.
 [bootstrap.packages]
 "brew:gawk" = { os = "macos" }
+"brew:coreutils" = { os = "macos" }
+"brew:findutils" = { os = "macos" }
+"brew:gnu-sed" = { os = "macos" }
+"brew:gnu-tar" = { os = "macos" }
+"brew:grep" = { os = "macos" }
+"brew:make" = { os = "macos" }
 "brew:bash-completion@2" = { os = "macos" }
 "brew:bash" = { os = "macos" }
 "brew:gnupg" = { os = "macos" }
@@ -9,3 +15,6 @@
 "brew:tmux" = { os = "macos" }
 "brew-cask:font-comic-shanns-mono-nerd-font" = { os = "macos" }
 "brew-cask:ghostty" = { os = "macos" }
+
+[bootstrap.user]
+login_shell = "/opt/homebrew/bin/bash"

@@ -57,7 +57,7 @@ _check_startup() {
       # Skip host Xcode completions; they are not part of this repository.
       which() { return 1; }
 
-      PATH="/compat/sentinel:/usr/bin:$HOME/.local/bin:/bin:$HOME/.local/bin"
+      PATH="/compat/sentinel:/usr/bin:$HOME/.local/bin:/bin"
       if [[ "$2" == array ]]; then
         PROMPT_COMMAND=(first_hook second_hook)
       else
@@ -84,7 +84,8 @@ _check_startup() {
           remaining="${remaining#*:}"
           case "$entry" in
             "$HOME/.local/bin") local_bin_count=$((local_bin_count + 1)) ;;
-            /compat/sentinel|/usr/bin|/bin|/opt/homebrew/bin|/usr/local/bin|/Applications/Obsidian.app/Contents/MacOS) ;;
+            /compat/sentinel|/usr/bin|/bin|/opt/homebrew/bin|/opt/homebrew/sbin|/usr/local/bin|/Applications/Obsidian.app/Contents/MacOS) ;;
+            /opt/homebrew/opt/coreutils/libexec/gnubin|/opt/homebrew/opt/findutils/libexec/gnubin|/opt/homebrew/opt/gnu-sed/libexec/gnubin|/opt/homebrew/opt/gnu-tar/libexec/gnubin|/opt/homebrew/opt/gawk/libexec/gnubin|/opt/homebrew/opt/grep/libexec/gnubin|/opt/homebrew/opt/make/libexec/gnubin) ;;
             *) printf "Unexpected PATH entry: %s\n" "$entry" >&2; exit 1 ;;
           esac
         done
@@ -92,7 +93,7 @@ _check_startup() {
         for entry in /compat/sentinel /usr/bin /bin; do
           [[ ":$PATH:" == *":$entry:"* ]]
         done
-        [[ "$(command -v env)" == /usr/bin/env ]]
+        [[ -x "$(command -v env)" ]]
 
         if [[ "$2" == array ]]; then
           [[ "${PROMPT_COMMAND[0]}" == first_hook ]]

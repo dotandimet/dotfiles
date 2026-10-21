@@ -222,5 +222,7 @@ _apply() {
 @test "Linux manifest uses prebuilt user tools and macOS packages have explicit selectors" {
   ! grep -q '^\[bootstrap.packages\]' "$REPO/mise/conf.d/dotfiles-linux.toml"
   [ "$(grep -c 'os = \["linux"\]' "$REPO/mise/conf.d/dotfiles-linux.toml")" -eq 2 ]
-  [ "$(grep -c '^"brew.*os = "macos"' "$REPO/mise/conf.d/dotfiles-macos.toml")" -eq 8 ]
+  local manifest="$REPO/mise/conf.d/dotfiles-macos.toml"
+  [ "$(grep -c '^"brew' "$manifest")" -gt 0 ]
+  ! grep '^"brew' "$manifest" | grep -v 'os = "macos"'
 }
