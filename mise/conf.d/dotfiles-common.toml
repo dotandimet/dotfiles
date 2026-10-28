@@ -12,7 +12,6 @@ shell_out = true
 "npm:@mariozechner/gccli" = "0.1.2"
 "npm:@mariozechner/gdcli" = "0.1.1"
 "npm:@mariozechner/gmcli" = "0.2.0"
-"npm:defuddle" = "0.19.4"
 fd = "10.5.0"
 fzf = "0.74.4"
 gh = "2.102.0"
