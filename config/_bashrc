@@ -1,4 +1,5 @@
 # shellcheck shell=bash
+# vim: set ft=bash :
 # set -euo pipefail
 # IFS=$'\n\t'
 
@@ -16,15 +17,15 @@ shopt -s histappend
 # Keep environment-provided prompt hooks, including Bash 5 arrays.
 if [[ "$(declare -p PROMPT_COMMAND 2>/dev/null)" == "declare -a "* ]]; then
   case ";${PROMPT_COMMAND[*]};" in
-    *"history -a"*) ;;
-    *) PROMPT_COMMAND+=('history -a') ;;
+  *"history -a"*) ;;
+  *) PROMPT_COMMAND+=('history -a') ;;
   esac
 else
   # This branch is scalar; ShellCheck cannot infer the declare -p guard.
   # shellcheck disable=SC2178,SC2128
   case ";${PROMPT_COMMAND:-};" in
-    *"history -a"*) ;;
-    *) PROMPT_COMMAND="${PROMPT_COMMAND:+${PROMPT_COMMAND}; }history -a" ;;
+  *"history -a"*) ;;
+  *) PROMPT_COMMAND="${PROMPT_COMMAND:+${PROMPT_COMMAND}; }history -a" ;;
   esac
 fi
 # Don't put duplicate lines in the history.
@@ -39,8 +40,8 @@ export HISTCONTROL=ignoredups
 
 # Personal bin/ directory: add it only if absent, including on re-source.
 case ":$PATH:" in
-  *":$HOME/.local/bin:"*) ;;
-  *) export PATH="$HOME/.local/bin:$PATH" ;;
+*":$HOME/.local/bin:"*) ;;
+*) export PATH="$HOME/.local/bin:$PATH" ;;
 esac
 
 alias ls="ls --color=auto"
@@ -74,9 +75,9 @@ alias s="starship toggle line_break"
 # mise bootstrap can install Homebrew bottles without a brew executable.
 if [[ "$OSTYPE" == darwin* ]]; then
   case ":$PATH:" in
-     *":/opt/homebrew/bin:/opt/homebrew/sbin:"*) ;;
-     *) export PATH="/opt/homebrew/bin:/opt/homebrew/sbin${PATH+:$PATH}" ;;
-   esac
+  *":/opt/homebrew/bin:/opt/homebrew/sbin:"*) ;;
+  *) export PATH="/opt/homebrew/bin:/opt/homebrew/sbin${PATH+:$PATH}" ;;
+  esac
 fi
 
 # GNU tools use unprefixed names here (ls, sed, awk, etc.). No brew executable
@@ -86,8 +87,8 @@ if [[ "$OSTYPE" == darwin* ]]; then
     _gnu_bin="/opt/homebrew/opt/$_gnu_package/libexec/gnubin"
     if [[ -d "$_gnu_bin" ]]; then
       case ":$PATH:" in
-        *":$_gnu_bin:"*) ;;
-        *) export PATH="$_gnu_bin${PATH+:$PATH}" ;;
+      *":$_gnu_bin:"*) ;;
+      *) export PATH="$_gnu_bin${PATH+:$PATH}" ;;
       esac
     fi
   done
@@ -114,10 +115,17 @@ eval "$(starship init bash)"
 # flyline is optional while tools are still being installed.
 if command -v mise >/dev/null 2>&1; then
   FLYLINE="$(mise bin-paths github:HalFrgrd/flyline)/$(mise bin-paths --bin-names github:HalFrgrd/flyline)"
-  if [[ -f "$FLYLINE" ]] && enable -f "$FLYLINE" flyline; then
-    flyline create-prompt-widget mouse-mode --name MOUSE_MODE 'ON ' 'OFF' && RPS1=" MOUSE_MODE $RPS1"
-    flyline set-agent-mode --system-prompt \
-      "Be concise. Answer with a JSON array of at most 3 items with objects containing: command and description. Command will be a Bash command." \
-      --trigger-prefix ': ' --command 'pi --thinking low --print'
+  if [[ -f "$FLYLINE" ]]; then
+    function fly() {
+      enable -f "$FLYLINE" flyline
+      flyline create-prompt-widget mouse-mode --name MOUSE_MODE 'ON ' 'OFF' && RPS1=" MOUSE_MODE $RPS1"
+      flyline set-agent-mode --system-prompt \
+        "Be concise. Answer with a JSON array of at most 3 items with objects containing: command and description. Command will be a Bash command." \
+        --trigger-prefix ': ' --command 'pi --thinking low --print'
+    }
+    function ofly() {
+      enable -d flyline
+    }
+    fly
   fi
 fi
