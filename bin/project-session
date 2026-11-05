@@ -7,13 +7,13 @@
 # Given a project name, look for a tmux session with that name and
 # attach/switch to it. If none exists, create a session with three windows
 # named `vim`, `pi` and `git`, each cd'd into the project directory under
-# $PROJECTS (defaults to ~/Documents/code). `nvim` runs in the `vim` window,
+# $PROJECTS (defaults to ~/Projects/). `nvim` runs in the `vim` window,
 # `pi` runs in the `pi` window, and the session ends focused on the `pi`
 # window.
 
 set -euo pipefail
 
-PROJECTS="${PROJECTS:-$HOME/Documents/code}"
+PROJECTS="${PROJECTS:-$HOME/Projects}"
 
 die() {
   printf 'Error: %s\n' "$*" >&2

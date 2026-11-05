@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-PROJECTS="${PROJECTS:-$HOME/Documents/code}"
+PROJECTS="${PROJECTS:-$HOME/Projects}"
 
 create_project() {
   local project="$1"

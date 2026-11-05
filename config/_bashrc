@@ -49,7 +49,7 @@ alias ls="ls --color=auto"
 export NVIM_APPNAME="lazyvim"
 alias lv="env NVIM_APPNAME=lazyvim nvim"
 
-export PROJECTS="$HOME/Documents/code"
+export PROJECTS="$HOME/Projects"
 
 function go_to_project() {
   local dir

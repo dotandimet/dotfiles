@@ -6,13 +6,13 @@
 # Usage: new-project [project-name]
 #
 # If no name is given, you are prompted for one. The directory is created
-# under $PROJECTS (defaults to ~/Documents/code). The created project path
+# under $PROJECTS (defaults to ~/Projects). The created project path
 # is printed on the last line of stdout so a shell wrapper can `cd` into it
 # (see the `np` function in config/bashrc).
 
 set -euo pipefail
 
-PROJECTS="${PROJECTS:-$HOME/Documents/code}"
+PROJECTS="${PROJECTS:-$HOME/Projects}"
 
 # Everything informational goes to stderr so stdout stays clean for the path.
 log() { printf '%s\n' "$*" >&2; }
