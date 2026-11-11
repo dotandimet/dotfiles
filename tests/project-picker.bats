@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# Tests for bin/project-picker. Uses real jq; fd, fzf, and herdr are mocked.
+# Tests for bin/project-picker. Uses real jq; fd, fzf, herdr, and herdr-app are mocked.
 
 DOTFILES_DIR="$(cd "$(dirname "$BATS_TEST_FILENAME")/.." && pwd)"
 SCRIPT="$DOTFILES_DIR/bin/project-picker"
@@ -13,6 +13,8 @@ setup() {
   export PICKER_STATUS=0
   export FD_STATUS=0
   export HERDR_STATUS=0
+  export PROJECT_PICKER_BACKEND=auto
+  unset HERDR_ENV HC_TERMINAL_ID HERDR_APP_RESPONSE HERDR_APP_FAIL_COMMAND
   mkdir -p "$TEST_DIR/bin" "$PROJECTS/existing" "$PROJECTS/second"
   : >"$CALLS"
 
@@ -37,6 +39,20 @@ if [[ "$HERDR_STATUS" -ne 0 ]]; then
   exit "$HERDR_STATUS"
 fi
 printf '%s\n' '{"result":{"workspace":{"workspace_id":"workspace"},"tab":{"tab_id":"tab"},"root_pane":{"pane_id":"pane"}}}'
+EOF
+
+  cat >"$TEST_DIR/bin/herdr-app" <<'EOF'
+#!/usr/bin/env bash
+jq -cn --args '$ARGS.positional' -- "$@" >> "$CALLS"
+if [[ "${HERDR_APP_FAIL_COMMAND:-}" == "$2" ]]; then
+  exit 4
+fi
+if [[ -n "${HERDR_APP_RESPONSE:-}" ]]; then
+  printf '%s\n' "$HERDR_APP_RESPONSE"
+else
+  count=$(jq -s 'map(select(.[1] == "space.new")) | length' "$CALLS")
+  jq -cn --arg count "$count" '{space: ("space-" + $count), tab: ("pi-" + $count)}'
+fi
 EOF
 
   chmod +x "$TEST_DIR/bin/"*
@@ -252,4 +268,120 @@ _open_projects_with_distinct_tabs() {
   run "$SCRIPT"
   [ "$status" -eq 2 ]
   assert_no_changes
+}
+
+# --- desktop app / core backend ---
+
+@test "core terminals automatically open a desktop space with pi, nvim, and bash" {
+  export HC_TERMINAL_ID=t7
+  export PICKER_OUTPUT=$'\nexisting\n'
+  run "$SCRIPT"
+  [ "$status" -eq 0 ]
+  jq -se --arg dir "$PROJECTS/existing" 'map([.[0], .[1], (.[2] | fromjson)]) == [
+    ["do", "space.new", {name: "existing", folder: $dir, tab: "pi", argv: ["pi", "--continue"]}],
+    ["do", "tab.new", {space: "space-1", folder: $dir, name: "nvim", argv: ["nvim"]}],
+    ["do", "tab.new", {space: "space-1", folder: $dir, name: "bash", argv: ["bash"]}],
+    ["do", "tab.select", {id: "pi-1"}]
+  ]' "$CALLS" >/dev/null
+}
+
+@test "desktop workspace creation returns only the pi tab ID" {
+  export PROJECT_PICKER_BACKEND=herdr-app
+  run _run_function create_project_workspace existing
+  [ "$status" -eq 0 ]
+  [ "$output" = pi-1 ]
+}
+
+@test "desktop multi-selection targets each space and focuses the first pi tab" {
+  export PROJECT_PICKER_BACKEND=herdr-app
+  export PICKER_OUTPUT=$'\nexisting\nsecond\n'
+  run "$SCRIPT"
+  [ "$status" -eq 0 ]
+  jq -se 'map([.[1], (.[2] | fromjson)]) |
+    map(select(.[0] == "tab.new") | .[1].space) == ["space-1", "space-1", "space-2", "space-2"]' \
+    "$CALLS" >/dev/null
+  jq -se '.[-1][1] == "tab.select" and (.[-1][2] | fromjson) == {id: "pi-1"}' "$CALLS" >/dev/null
+}
+
+@test "desktop backend creates unmatched project names with spaces and quotes" {
+  export PROJECT_PICKER_BACKEND=herdr-app
+  local name='new "project"'
+  export PICKER_OUTPUT="$name" PICKER_STATUS=1
+  run "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [ -d "$PROJECTS/$name" ]
+  jq -se --arg name "$name" --arg dir "$PROJECTS/$name" \
+    '(.[0][2] | fromjson) == {name: $name, folder: $dir, tab: "pi", argv: ["pi", "--continue"]}' \
+    "$CALLS" >/dev/null
+}
+
+@test "TUI environment takes precedence over inherited core identity" {
+  export HERDR_ENV=1 HC_TERMINAL_ID=t7
+  export PICKER_OUTPUT=$'\nexisting\n'
+  run "$SCRIPT"
+  [ "$status" -eq 0 ]
+  assert_projects existing
+}
+
+@test "explicit backend overrides automatic detection" {
+  export PROJECT_PICKER_BACKEND=herdr HC_TERMINAL_ID=t7
+  export PICKER_OUTPUT=$'\nexisting\n'
+  run "$SCRIPT"
+  [ "$status" -eq 0 ]
+  assert_projects existing
+
+  : >"$CALLS"
+  export PROJECT_PICKER_BACKEND=herdr-app HERDR_ENV=1
+  run "$SCRIPT"
+  [ "$status" -eq 0 ]
+  jq -se '.[0][1] == "space.new"' "$CALLS" >/dev/null
+}
+
+@test "invalid backend fails before creating a project" {
+  export PROJECT_PICKER_BACKEND=unknown
+  export PICKER_OUTPUT=new PICKER_STATUS=1
+  run "$SCRIPT"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"PROJECT_PICKER_BACKEND must be"* ]]
+  assert_no_changes
+}
+
+@test "desktop cancellation and empty selection do not touch the app" {
+  export HC_TERMINAL_ID=t7
+  export PICKER_OUTPUT=$'cancelled\n' PICKER_STATUS=130
+  run "$SCRIPT"
+  [ "$status" -eq 130 ]
+  assert_no_changes
+
+  export PICKER_OUTPUT=$'\n' PICKER_STATUS=1
+  run "$SCRIPT"
+  [ "$status" -eq 0 ]
+  assert_no_changes
+}
+
+@test "desktop errors stop setup without opening more projects or focusing" {
+  export PROJECT_PICKER_BACKEND=herdr-app
+  local command expected_calls
+  for command in space.new tab.new; do
+    : >"$CALLS"
+    export HERDR_APP_FAIL_COMMAND="$command"
+    run _run_function open_projects $'existing\nsecond'
+    [ "$status" -eq 4 ]
+    expected_calls=1
+    [[ "$command" != tab.new ]] || expected_calls=2
+    jq -se --argjson count "$expected_calls" 'length == $count and all(.[]; .[1] != "tab.select")' \
+      "$CALLS" >/dev/null
+  done
+}
+
+@test "desktop setup rejects missing or invalid space and tab IDs" {
+  export PROJECT_PICKER_BACKEND=herdr-app
+  local response
+  for response in '{}' '{"space":"s1"}' '{"space":null,"tab":"t1"}' '{"space":"s1","tab":""}' 'invalid'; do
+    : >"$CALLS"
+    export HERDR_APP_RESPONSE="$response"
+    run _run_function create_project_workspace existing
+    [ "$status" -ne 0 ]
+    jq -se 'length == 1 and .[0][1] == "space.new"' "$CALLS" >/dev/null
+  done
 }
