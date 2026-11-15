@@ -17,4 +17,4 @@
 "brew-cask:ghostty" = { os = "macos" }
 
 [bootstrap.user]
-login_shell = "/opt/homebrew/bin/bash"
+login_shell = "bash"
