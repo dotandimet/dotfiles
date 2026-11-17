@@ -12,6 +12,20 @@
       "url": "https://raily.haaretz.co.il/mcp",
       "exposure": "codemode",
       "enabled": false
+    },
+    "mise": {
+      "command": "/Users/dotan/.local/bin/mise",
+      "args": [
+        "--cd",
+        "/Users/dotan/Projects/dotfiles",
+        "mcp"
+      ]
+    },
+    "firefox-bridge": {
+      "command": "node",
+      "args": [
+        "/Users/dotan/Projects/firefox-bridge/mcp-server/src/index.js"
+      ]
     }
   }
 }

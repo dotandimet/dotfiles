@@ -8,6 +8,15 @@
 -- e.g. vim.api.nvim_del_augroup_by_name("lazyvim_wrap_spell")
 --
 
+-- Disable diagnostics in Markdown buffers
+vim.api.nvim_create_autocmd("FileType", {
+  group = vim.api.nvim_create_augroup("disable_markdown_diagnostics", { clear = true }),
+  pattern = "markdown",
+  callback = function(event)
+    vim.diagnostic.enable(false, { bufnr = event.buf })
+  end,
+})
+
 -- Fix Visual selection highlight for transparent themes
 vim.api.nvim_create_autocmd("ColorScheme", {
   pattern = "rose-pine*",
