@@ -1,7 +1,41 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+usage() {
+  echo "Usage: $0 [--tag TAG]"
+  echo "Build dotfiles-test:TAG from this worktree (default: sanitized branch or commit-SHA)."
+}
+
+tag=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --tag)
+      [[ $# -ge 2 && -n "$2" ]] || { usage >&2; exit 1; }
+      tag="$2"
+      shift 2
+      ;;
+    -h|--help) usage; exit 0 ;;
+    *) usage >&2; exit 1 ;;
+  esac
+done
+
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+revision="$(git -C "$REPO_DIR" rev-parse HEAD)"
+branch="$(git -C "$REPO_DIR" symbolic-ref --quiet --short HEAD || true)"
+if [[ -z "$tag" ]]; then
+  tag="${branch:-commit-${revision:0:12}}"
+  tag="$(printf '%s' "$tag" | LC_ALL=C tr -c 'a-zA-Z0-9_.-' '-')"
+  while [[ "$tag" == [.-]* ]]; do tag="${tag:1}"; done
+  tag="${tag:0:128}"
+fi
+if [[ ! "$tag" =~ ^[a-zA-Z0-9_][a-zA-Z0-9_.-]*$ || ${#tag} -gt 128 ]]; then
+  echo "Invalid image tag: $tag" >&2
+  exit 1
+fi
+image="dotfiles-test:$tag"
+dirty=false
+[[ -z "$(git -C "$REPO_DIR" status --porcelain)" ]] || dirty=true
+
 TEMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TEMP_DIR"' EXIT
 BASE_DIR="$TEMP_DIR/repo"
@@ -33,6 +67,8 @@ export GITHUB_TOKEN="${GITHUB_TOKEN:-$(gh auth token 2>/dev/null || true)}"
 if [[ -n "$GITHUB_TOKEN" ]]; then
   build_args+=(--secret 'id=GITHUB_TOKEN,env=GITHUB_TOKEN')
 fi
-container build --tag dotfiles-test --build-arg DOTFILES_SOURCE=dotfiles.tar \
+container build --tag "$image" --build-arg DOTFILES_SOURCE=dotfiles.tar \
+  --label "org.opencontainers.image.revision=$revision" \
+  --label "io.dotfiles.worktree.dirty=$dirty" \
   "${build_args[@]}" --file "$BASE_DIR/Dockerfile" "$BASE_DIR"
-echo "Unprivileged Linux bootstrap and tests passed."
+echo "Unprivileged Linux bootstrap and tests passed: $image"
