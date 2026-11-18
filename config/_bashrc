@@ -123,7 +123,7 @@ if command -v mise >/dev/null 2>&1; then
         "Be concise. Answer with a JSON array of at most 3 items with objects containing: command and description. Command will be a Bash command." \
         --trigger-prefix ': ' --command 'pi --model deepseek/deepseek-v4.1-flash --thinking low --print'
     }
-    function ofly() {
+    function flyoff() {
       enable -d flyline
     }
     fly
