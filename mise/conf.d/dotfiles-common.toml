@@ -25,5 +25,6 @@ ripgrep = "15.2.0"
 shellcheck = "0.11.0"
 starship = "1.27.0"
 usage = { version = "7.1.5", workflow = "publish-cli.yml" }
+uv = "0.13.9"
 yazi = "26.9.1"
 
