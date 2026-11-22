@@ -12,6 +12,9 @@ shell_out = true
 "npm:@mariozechner/gccli" = "0.1.2"
 "npm:@mariozechner/gdcli" = "0.1.1"
 "npm:@mariozechner/gmcli" = "0.2.0"
+"npm:netlify-cli" = "latest"
+claude = "2.1.317"
+codex = "0.166.0"
 fd = "10.5.0"
 fzf = "0.74.5"
 gh = "2.103.3"
@@ -20,6 +23,7 @@ jq = "1.8.2"
 lazygit = "0.66.2"
 node = "26.13.0"
 pi = "1.5.0"
+poppler = "26.10.0"
 python = "3.15.2"
 ripgrep = "15.2.0"
 shellcheck = "0.11.0"
@@ -27,4 +31,5 @@ starship = "1.27.0"
 usage = { version = "7.1.5", workflow = "publish-cli.yml" }
 uv = "0.13.9"
 yazi = "26.9.1"
+yt-dlp = { version = "latest", rename_exe = "yt-dlp" }
 
