@@ -32,3 +32,7 @@ bats = "1.14.0"
 [tasks.test]
 description = "Run bats test suite"
 run = "bats tests/"
+
+[tasks.upgrades]
+description = "Upgrade mise and all tools"
+run = "mise self-update --verbose --yes && env MISE_MINIMUM_RELEASE_AGE=0s mise upgrade --bump"
