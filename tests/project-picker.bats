@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# Tests for bin/project-picker. Uses real jq; fd, fzf, herdr, and herdr-app are mocked.
+# Tests for bin/project-picker. Uses real jq; terminal backends, fd, and fzf are mocked.
 
 DOTFILES_DIR="$(cd "$(dirname "$BATS_TEST_FILENAME")/.." && pwd)"
 SCRIPT="$DOTFILES_DIR/bin/project-picker"
@@ -14,7 +14,8 @@ setup() {
   export FD_STATUS=0
   export HERDR_STATUS=0
   export PROJECT_PICKER_BACKEND=auto
-  unset HERDR_ENV HC_TERMINAL_ID HERDR_APP_RESPONSE HERDR_APP_FAIL_COMMAND
+  unset TMUX HC_TERMINAL_ID HERDR_APP_RESPONSE HERDR_APP_FAIL_COMMAND
+  export HERDR_ENV=1
   mkdir -p "$TEST_DIR/bin" "$PROJECTS/existing" "$PROJECTS/second"
   : >"$CALLS"
 
@@ -55,6 +56,16 @@ else
 fi
 EOF
 
+  cat >"$TEST_DIR/bin/tmux" <<'EOF'
+#!/usr/bin/env bash
+jq -cn --args '$ARGS.positional' -- "$@" >> "$CALLS"
+if [[ "$1" == has-session ]]; then
+  exit "${TMUX_HAS_SESSION_STATUS:-1}"
+fi
+exit "${TMUX_STATUS:-0}"
+EOF
+
+  unset TMUX_HAS_SESSION_STATUS TMUX_STATUS
   chmod +x "$TEST_DIR/bin/"*
 }
 
@@ -133,9 +144,10 @@ assert_no_changes() {
 @test "pick_projects creates and returns an unmatched project without invoking Herdr" {
   export PICKER_OUTPUT=$'new project\n'
   export PICKER_STATUS=1
-  run _run_function pick_projects
+  run _run_function pick_projects <<< yes
   [ "$status" -eq 0 ]
-  [ "$output" = "new project" ]
+  [[ "$output" == *'Create project "new project"? [y/N]'* ]]
+  [[ "$output" == *"new project" ]]
   [ -d "$PROJECTS/new project" ]
   [ ! -s "$CALLS" ]
 }
@@ -222,7 +234,7 @@ _open_projects_with_distinct_tabs() {
 @test "creates a project from an unmatched query containing spaces" {
   export PICKER_OUTPUT=$'new project\n'
   export PICKER_STATUS=1
-  run "$SCRIPT"
+  run "$SCRIPT" <<< yes
   [ "$status" -eq 0 ]
   assert_projects "new project"
 }
@@ -273,6 +285,7 @@ _open_projects_with_distinct_tabs() {
 # --- desktop app / core backend ---
 
 @test "core terminals automatically open a desktop space with pi, nvim, and bash" {
+  unset HERDR_ENV
   export HC_TERMINAL_ID=t7
   export PICKER_OUTPUT=$'\nexisting\n'
   run "$SCRIPT"
@@ -307,7 +320,7 @@ _open_projects_with_distinct_tabs() {
   export PROJECT_PICKER_BACKEND=herdr-app
   local name='new "project"'
   export PICKER_OUTPUT="$name" PICKER_STATUS=1
-  run "$SCRIPT"
+  run "$SCRIPT" <<< yes
   [ "$status" -eq 0 ]
   [ -d "$PROJECTS/$name" ]
   jq -se --arg name "$name" --arg dir "$PROJECTS/$name" \
@@ -347,6 +360,7 @@ _open_projects_with_distinct_tabs() {
 }
 
 @test "desktop cancellation and empty selection do not touch the app" {
+  unset HERDR_ENV
   export HC_TERMINAL_ID=t7
   export PICKER_OUTPUT=$'cancelled\n' PICKER_STATUS=130
   run "$SCRIPT"
@@ -372,6 +386,75 @@ _open_projects_with_distinct_tabs() {
     jq -se --argjson count "$expected_calls" 'length == $count and all(.[]; .[1] != "tab.select")' \
       "$CALLS" >/dev/null
   done
+}
+
+@test "declining project creation leaves directories and backends untouched" {
+  export PICKER_OUTPUT=new PICKER_STATUS=1
+  run "$SCRIPT" <<< no
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'Create project "new"? [y/N]'* ]]
+  assert_no_changes
+}
+
+@test "EOF at the creation prompt does not create a project" {
+  export PICKER_OUTPUT=new PICKER_STATUS=1
+  run "$SCRIPT" </dev/null
+  [ "$status" -eq 0 ]
+  assert_no_changes
+}
+
+@test "plain terminals create three tmux windows and attach to pi" {
+  unset HERDR_ENV
+  export PICKER_OUTPUT=$'\nexisting\n'
+  run "$SCRIPT"
+  [ "$status" -eq 0 ]
+  jq -se --arg dir "$PROJECTS/existing" '. == [
+    ["has-session", "-t", "=existing"],
+    ["new-session", "-d", "-s", "existing", "-n", "pi", "-c", $dir, "bash"],
+    ["send-keys", "-t", "=existing:pi", "pi --continue", "C-m"],
+    ["new-window", "-t", "=existing:", "-n", "nvim", "-c", $dir, "bash"],
+    ["send-keys", "-t", "=existing:nvim", "nvim", "C-m"],
+    ["new-window", "-t", "=existing:", "-n", "bash", "-c", $dir, "bash"],
+    ["select-window", "-t", "=existing:pi"],
+    ["attach-session", "-t", "=existing:pi"]
+  ]' "$CALLS" >/dev/null
+}
+
+@test "project-session delegates to the picker and switches existing tmux sessions" {
+  export PROJECT_PICKER_BACKEND=tmux TMUX=test TMUX_HAS_SESSION_STATUS=0
+  export PICKER_OUTPUT=$'ex\nexisting\n'
+  run "$DOTFILES_DIR/bin/project-session" ex
+  [ "$status" -eq 0 ]
+  jq -se '. == [
+    ["has-session", "-t", "=existing"],
+    ["select-window", "-t", "=existing:pi"],
+    ["switch-client", "-t", "=existing:pi"]
+  ]' "$CALLS" >/dev/null
+}
+
+@test "tmux creates confirmed new projects with sanitized session names" {
+  export PROJECT_PICKER_BACKEND=tmux PICKER_OUTPUT='new.project: one' PICKER_STATUS=1
+  run "$SCRIPT" <<< yes
+  [ "$status" -eq 0 ]
+  [ -d "$PROJECTS/new.project: one" ]
+  jq -se --arg dir "$PROJECTS/new.project: one" '
+    .[1] == ["new-session", "-d", "-s", "new_project_ one", "-n", "pi", "-c", $dir, "bash"]
+    and .[-1] == ["attach-session", "-t", "=new_project_ one:pi"]' "$CALLS" >/dev/null
+}
+
+@test "tmux multi-selection creates both sessions and focuses the first" {
+  export PROJECT_PICKER_BACKEND=tmux PICKER_OUTPUT=$'\nexisting\nsecond\n'
+  run "$SCRIPT"
+  [ "$status" -eq 0 ]
+  jq -se 'map(select(.[0] == "new-session") | .[3]) == ["existing", "second"]
+    and .[-1] == ["attach-session", "-t", "=existing:pi"]' "$CALLS" >/dev/null
+}
+
+@test "tmux creation failure stops without attaching" {
+  export PROJECT_PICKER_BACKEND=tmux TMUX_STATUS=4 PICKER_OUTPUT=$'\nexisting\n'
+  run "$SCRIPT"
+  [ "$status" -eq 4 ]
+  jq -se 'length == 2 and .[-1][0] == "new-session"' "$CALLS" >/dev/null
 }
 
 @test "desktop setup rejects missing or invalid space and tab IDs" {

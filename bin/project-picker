@@ -4,14 +4,16 @@ set -euo pipefail
 
 PROJECTS="${PROJECTS:-$HOME/Projects}"
 
-# Override with PROJECT_PICKER_BACKEND=herdr or herdr-app when launching outside
-# a managed terminal. The desktop app starts its terminals through herdr-core.
+# Shared project launcher for herdr, herdr-app and tmux
+# Override detection with PROJECT_PICKER_BACKEND=herdr, herdr-app, or tmux.
 PROJECT_PICKER_BACKEND="${PROJECT_PICKER_BACKEND:-auto}"
 if [[ "$PROJECT_PICKER_BACKEND" == auto ]]; then
-  if [[ "${HERDR_ENV:-}" != 1 && -n "${HC_TERMINAL_ID:-}" ]]; then
+  if [[ "${HERDR_ENV:-}" == 1 ]]; then
+    PROJECT_PICKER_BACKEND=herdr
+  elif [[ -n "${HC_TERMINAL_ID:-}" ]]; then
     PROJECT_PICKER_BACKEND=herdr-app
   else
-    PROJECT_PICKER_BACKEND=herdr
+    PROJECT_PICKER_BACKEND=tmux
   fi
 fi
 
@@ -46,7 +48,20 @@ pick_projects() {
 
   if [[ -z "$projects" ]]; then
     [[ -n "$query" ]] || return 0
-    create_project "$query" || return
+    # Validate before prompting; never allow traversal outside PROJECTS.
+    case "$query" in
+    . | .. | */*)
+      printf 'Error: Project name must be a single directory name\n' >&2
+      return 1
+      ;;
+    esac
+    if [[ ! -d "$PROJECTS/$query" ]]; then
+      local answer
+      printf 'Create project "%s"? [y/N] ' "$query" >&2
+      IFS= read -r answer || return 0
+      case "$answer" in y | Y | yes | YES) ;; *) return 0 ;; esac
+      create_project "$query" || return
+    fi
     projects="$query"
   fi
   printf '%s\n' "$projects"
@@ -66,6 +81,22 @@ create_command_tab() {
   tab=$(herdr tab create --workspace "$workspace_id" --cwd "$project_dir" --label "$command") || return
   pane_id=$(printf '%s' "$tab" | jq -r '.result.root_pane.pane_id') || return
   herdr pane run "$pane_id" "$command" >/dev/null
+}
+
+# Print the pi window target; reuse existing tmux sessions.
+create_tmux_session() {
+  local project="$1" session dir
+  session=$(printf '%s' "$project" | tr '.:' '__')
+  dir="$PROJECTS/$project"
+  if ! tmux has-session -t "=$session" 2>/dev/null; then
+    tmux new-session -d -s "$session" -n pi -c "$dir" bash || return
+    tmux send-keys -t "=$session:pi" 'pi --continue' C-m || return
+    tmux new-window -t "=$session:" -n nvim -c "$dir" bash || return
+    tmux send-keys -t "=$session:nvim" nvim C-m || return
+    tmux new-window -t "=$session:" -n bash -c "$dir" bash || return
+  fi
+  tmux select-window -t "=$session:pi" || return
+  printf '=%s:pi\n' "$session"
 }
 
 # Print the pi tab ID; keep other Herdr responses out of this return value.
@@ -100,13 +131,23 @@ open_projects() {
 
   [[ -n "$projects" ]] || return 0
   while IFS= read -r project; do
-    pi_tab_id=$(create_project_workspace "$project") || return
+    if [[ "$PROJECT_PICKER_BACKEND" == tmux ]]; then
+      pi_tab_id=$(create_tmux_session "$project") || return
+    else
+      pi_tab_id=$(create_project_workspace "$project") || return
+    fi
     if [[ -z "$first_pi_tab_id" ]]; then
       first_pi_tab_id="$pi_tab_id"
     fi
   done <<<"$projects"
 
-  if [[ "$PROJECT_PICKER_BACKEND" == herdr-app ]]; then
+  if [[ "$PROJECT_PICKER_BACKEND" == tmux ]]; then
+    if [[ -n "${TMUX:-}" ]]; then
+      tmux switch-client -t "$first_pi_tab_id"
+    else
+      tmux attach-session -t "$first_pi_tab_id"
+    fi
+  elif [[ "$PROJECT_PICKER_BACKEND" == herdr-app ]]; then
     args=$(jq -cn --arg id "$first_pi_tab_id" '{id: $id}') || return
     herdr-app 'do' tab.select "$args"
   else
@@ -117,9 +158,9 @@ open_projects() {
 main() {
   local projects
   case "$PROJECT_PICKER_BACKEND" in
-  herdr | herdr-app) ;;
+  herdr | herdr-app | tmux) ;;
   *)
-    printf 'Error: PROJECT_PICKER_BACKEND must be auto, herdr, or herdr-app\n' >&2
+    printf 'Error: PROJECT_PICKER_BACKEND must be auto, herdr, herdr-app, or tmux\n' >&2
     return 1
     ;;
   esac
