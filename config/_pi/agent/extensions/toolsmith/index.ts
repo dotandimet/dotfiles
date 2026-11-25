@@ -13,11 +13,11 @@
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import * as fs from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
+import { bashScriptSmell, codemodeScriptSmell, writeScriptSmell } from "./smells.ts";
 
 const EXT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const BIN_DIR = path.join(EXT_DIR, "bin");
@@ -28,8 +28,6 @@ const STANDARDS = path.join(INSTRUCTIONS, "authoring-standards.md");
 const REPLY_FORMAT = path.join(INSTRUCTIONS, "reply-format.md");
 
 const SUBAGENT_TIMEOUT_MS = 20 * 60 * 1000;
-const SCRIPT_EXT = /\.(py|js|mjs|cjs|ts|rb|pl|php|sh|bash|zsh|lua|r)$/i;
-const MAX_INLINE_LINES = 5;
 
 // ---------- small helpers ----------
 
@@ -137,46 +135,16 @@ function searchCatalog(lines: string[], query: string): string[] {
 
 // ---------- helper-script detection for the nudge ----------
 
-const INTERP = String.raw`(?:python[0-9.]*|node|ruby|perl|php|deno|bun|lua|Rscript|osascript)`;
-const HEREDOC_TO_INTERP = new RegExp(String.raw`(?:^|[\s;&|(/])${INTERP}\b[^\n]*<<-?\s*['"]?\w+`, "m");
-const INLINE_CODE = new RegExp(String.raw`(?:^|[\s;&|(/])${INTERP}\s+(?:-[A-Za-z]*\s+)*(?:-c|-e|--eval|-p)\s`, "m");
-const HEREDOC_TO_FILE = /(?:\bcat|\btee)\b[^\n]*?\S+\.(?:py|js|mjs|cjs|ts|rb|pl|php|sh|bash|lua|r)\b[^\n]*<<|<<[^\n]*>\s*\S+\.(?:py|js|mjs|cjs|ts|rb|pl|php|sh|bash|lua|r)\b/i;
+// Detectors live in smells.ts (pure, testable with plain node).
 
-function bashScriptSmell(cmd: string): string | null {
-	const lines = cmd.split("\n").length;
-	if (lines <= MAX_INLINE_LINES) return null;
-	if (HEREDOC_TO_FILE.test(cmd)) return `writes a ${lines}-line script file through a heredoc`;
-	if (HEREDOC_TO_INTERP.test(cmd)) return `feeds a ${lines}-line heredoc to an interpreter`;
-	if (INLINE_CODE.test(cmd)) return `passes ${lines} lines of inline code to an interpreter (-c/-e)`;
-	return null;
-}
-
-function inGitRepo(p: string): boolean {
-	let dir = path.dirname(p);
-	for (;;) {
-		if (fs.existsSync(path.join(dir, ".git"))) return true;
-		const up = path.dirname(dir);
-		if (up === dir) return false;
-		dir = up;
-	}
-}
-
-function writeScriptSmell(filePath: string, content: string, cwd: string): string | null {
-	if (!SCRIPT_EXT.test(filePath)) return null;
-	const lines = content.split("\n").length;
-	if (lines <= MAX_INLINE_LINES) return null;
-	const abs = path.resolve(cwd, filePath.replace(/^@/, ""));
-	const tmpRoots = [os.tmpdir(), "/tmp", "/private/tmp", "/var/folders", "/private/var/folders"];
-	const inTmp = tmpRoots.some((r) => abs.startsWith(r.endsWith("/") ? r : `${r}/`));
-	if (inTmp) return `writes a ${lines}-line script to a temp directory`;
-	// Inside a git repo a script file is most likely the project's own code.
-	if (!inGitRepo(abs)) return `writes a ${lines}-line script outside any project repository`;
-	return null;
-}
-
-const NUDGE = (why: string) =>
+const NUDGE = (why: string, codemode = false) =>
 	[
 		`toolsmith: held this call once. It looks like a throwaway helper script (it ${why}).`,
+		...(codemode
+			? [
+					"codemode is for orchestrating tool calls. Parsing files, transforming or merging records, and generating edits in JavaScript is a helper script like any other. Rewriting it next time costs as much as it did this time.",
+				]
+			: []),
 		"Instead of writing a one-off script:",
 		"1. Call toolsmith_search with a few words for the job; if a listed tool fits, run it by its absolute path (check --help first).",
 		"2. Otherwise call toolsmith with a brief. It builds, verifies and catalogs a reusable CLI tool and replies with the command to run.",
@@ -267,6 +235,7 @@ export default function toolsmith(pi: ExtensionAPI) {
 			"Before writing a helper script that isn't part of the project's deliverable (a saved script, or a multi-line heredoc, python3 -c or node -e for data conversion, image/PDF manipulation, log trawling, API calls, fixtures, one-off data fixes), call toolsmith_search with a few words for the job and use a fitting tool by its absolute path.",
 			"If no catalog tool fits, call toolsmith with a brief instead of writing the script yourself, then run the tool path it returns. If its reply says mutates: yes, run the tool with --dry-run first.",
 			"After using a toolsmith tool, tell the user in one line which tool you used or got built, quoting its catalog: line.",
+			"codemode scripts count too: use codemode to orchestrate tool calls (batch, chain, trim output), but parsing files, transforming or merging records, or generating edits programmatically in a codemode script is a helper script. Search the catalog or call toolsmith for that logic.",
 			"Write code yourself instead of calling toolsmith only for mission work (code that ships with the project), single command lines, throwaway inspection snippets of at most five lines, or when the user explicitly asks for a script.",
 		],
 		parameters: Type.Object({
@@ -423,9 +392,16 @@ export default function toolsmith(pi: ExtensionAPI) {
 	// Nudge: hold the first attempt at a helper script; an identical retry passes.
 	pi.on("tool_call", async (event, ctx) => {
 		if (!nudgeEnabled) return;
+		// Calls made from inside a codemode script were vetted with the script.
+		// Holding one mid-script would make the agent re-run the whole script,
+		// repeating its earlier side effects.
+		if ((event as any).parentToolCallId) return;
 		let why: string | null = null;
 		const input: any = event.input;
-		if (event.toolName === "bash" && typeof input?.command === "string") {
+		const isCodemode = event.toolName === "codemode" && typeof input?.code === "string";
+		if (isCodemode) {
+			why = codemodeScriptSmell(input.code);
+		} else if (event.toolName === "bash" && typeof input?.command === "string") {
 			why = bashScriptSmell(input.command);
 		} else if (event.toolName === "write" && typeof input?.path === "string" && typeof input?.content === "string") {
 			why = writeScriptSmell(input.path, input.content, ctx.cwd);
@@ -437,7 +413,7 @@ export default function toolsmith(pi: ExtensionAPI) {
 			return;
 		}
 		heldOnce.add(key);
-		return { block: true, reason: NUDGE(why) };
+		return { block: true, reason: NUDGE(why, isCodemode) };
 	});
 
 	pi.registerCommand("toolsmith", {

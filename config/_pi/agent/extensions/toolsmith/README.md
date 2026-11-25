@@ -17,8 +17,37 @@ it yourself".
 | `toolsmith_search` tool | Keyword search over the global catalog and the current git project's catalog. |
 | `toolsmith` tool | Runs a headless child `pi --mode json -p` with the toolsmith instructions. The child finds, extends or writes a tool, verifies it, installs it with `toolsmith-repo`, and returns `tool: / catalog: / usage: / status: / mutates: / verified: / assumed: / note:`. Progress streams into the tool row, and the child's token usage is added to the session. |
 | Prompt rules | `promptGuidelines` on the `toolsmith` tool: search first, delegate instead of scripting, dry-run if the tool mutates, quote the catalog line. These are part of the system prompt, so they persist and stay cache-friendly. |
-| Nudge | A `tool_call` hook holds the **first** attempt at a helper script and tells the agent to search or delegate. This covers a `bash` call with a 6+ line interpreter heredoc, `-c`/`-e` code, or a heredoc into a script file, and a `write` of a 6+ line script into a temp dir or outside any git repo. Re-running the identical call lets it through, for mission work or when the user asked for a script. |
+| Nudge | A `tool_call` hook holds the **first** attempt at a helper script and tells the agent to search or delegate. Re-running the identical call lets it through, for mission work or when the user asked for a script. See [What the nudge catches](#what-the-nudge-catches). |
 | `/toolsmith [words]` | Lists or searches cataloged tools. `/toolsmith nudge on\|off` toggles the nudge for the session. |
+
+## What the nudge catches
+
+The detectors are in `smells.ts`.
+
+- **bash**: an interpreter heredoc (`python3 - <<EOF`), `-c`/`-e` code, or
+  a heredoc into a script file, when it is longer than 5 lines or 600
+  characters. The character limit catches long one-liners.
+- **write**: a script file of 6+ lines written to a temp dir or outside any
+  git repo. Inside a repo, a script is probably project code.
+- **codemode**: codemode is meant for orchestrating tools. Two patterns
+  turn it into a helper-script loophole:
+  - **Logic in JavaScript.** The script parses files, merges records or
+    generates edits. The code is measured with string, template and regex
+    literals and comments stripped out (`skeleton()`), so long shell
+    commands and data blocks don't count. The script is held at 900+
+    characters with 14+ data-processing constructs.
+  - **A heredoc inside `tools.bash("python3 - <<EOF ...")`.** The script's
+    string literals are checked with the bash rule.
+
+  Calls made from inside a codemode script (`parentToolCallId`) are not
+  checked again. Holding one mid-script would make the agent re-run the
+  whole script and repeat its side effects.
+
+Calibration was run on 366 codemode scripts from real sessions
+(`node test/calibrate-codemode.ts`). The logic rule held 5, all real
+logic: record merging, programmatic edit generation, a data migration. The
+next-highest orchestration script scored 10 against the threshold of 14.
+The bash-in-codemode rule held 44 genuine python heredocs.
 
 ## Child agent
 
@@ -42,6 +71,8 @@ it yourself".
   tailoring for this machine. Python tools that need packages (Pillow,
   pypdf, ...) are uv scripts with PEP 723 inline metadata, and
   mise-managed CLIs are preferred.
+- `smells.ts`: the helper-script detectors (pure; no pi imports).
+- `test/`: unit tests and the codemode calibration script.
 - `instructions/reply-format.md`: the upstream reply format, plus a
   `usage:` line.
 
@@ -53,6 +84,13 @@ it yourself".
   `toolsmith-repo`; for testing).
 
 ## Test
+
+```bash
+node --test test/                          # detector unit tests
+node test/calibrate-codemode.ts --top 20   # rank real codemode scripts; --show N prints one
+```
+
+End-to-end:
 
 ```bash
 TOOLSMITH_TEST_REPO=$(mktemp -d)/tools pi -p --no-session --no-extensions \
