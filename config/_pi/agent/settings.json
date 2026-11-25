@@ -8,8 +8,7 @@
     "+codemode"
   ],
   "packages": [
-    "npm:@ogulcancelik/pi-herdr",
-    "git:github.com/prime-radiant-inc/toolsmith"
+    "npm:@ogulcancelik/pi-herdr"
   ],
   "collapseChangelog": true,
   "quietStartup": false,
